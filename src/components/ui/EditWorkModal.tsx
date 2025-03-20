@@ -113,6 +113,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
             </label>
             <input
               type="text"
+              className="border rounded border-gray-500 pl-2"
               id="name"
               name="name"
               value={formData.name}
@@ -128,6 +129,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="text"
               id="cpf"
               name="cpf"
+              className="border rounded border-gray-500 pl-2"
               value={formData.cpf}
               onChange={handleChange}
               required
@@ -141,6 +143,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="date"
               id="nascimento"
               name="nascimento"
+              className="border rounded border-gray-500 pl-2"
               value={formData.nascimento}
               onChange={handleChange}
               required
@@ -154,6 +157,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="date"
               id="admissao"
               name="admissao"
+              className="border rounded border-gray-500 pl-2"
               value={formData.admissao}
               onChange={handleChange}
               required
@@ -167,6 +171,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="text"
               id="salario"
               name="salario"
+              className="border rounded border-gray-500 pl-2"
               value={formData.salario}
               onChange={handleChange}
               required
@@ -180,6 +185,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="text"
               id="numero"
               name="numero"
+              className="border rounded border-gray-500 pl-2"
               value={formData.numero}
               onChange={handleChange}
               required
@@ -193,6 +199,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="email"
               id="email"
               name="email"
+              className="border rounded border-gray-500 pl-2"
               value={formData.email}
               onChange={handleChange}
               required
@@ -206,6 +213,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="text"
               id="address"
               name="address"
+              className="border rounded border-gray-500 pl-2"
               value={formData.address}
               onChange={handleChange}
               required
@@ -218,6 +226,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
             <input
               type="text"
               id="contract"
+              className="border rounded border-gray-500 pl-2"
               name="contract"
               value={formData.contract}
               onChange={handleChange}
@@ -232,6 +241,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="text"
               id="role"
               name="role"
+              className="border rounded border-gray-500 pl-2"
               value={formData.role}
               onChange={handleChange}
               required

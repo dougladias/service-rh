@@ -18,7 +18,6 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <p className="text-gray-600">Visão geral do sistema de RH</p>
         </div>
-        <Button className="bg-blue-500 hover:bg-blue-600">Novo Funcionário</Button>
       </div>
 
       {/* Cards de Estatísticas */}
@@ -29,7 +28,7 @@ export default function DashboardPage() {
             className="bg-white border rounded-lg p-4 shadow-sm flex flex-col"
           >
             <div className="flex justify-between items-center mb-4">
-              {React.createElement(card.icon, { className: "text-blue-500", size: 32 } as any)}
+              {React.createElement(card.icon as React.ElementType, { className: "text-cyan-400", size: 32 })}
               <Badge 
                 variant={card.positive ? 'secondary' : 'destructive'}
                 className={`
@@ -52,7 +51,7 @@ export default function DashboardPage() {
       <div className="bg-white border rounded-lg p-4 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Atividades Recentes</h3>
-          <Button variant="link" className="text-blue-600 p-0">
+          <Button variant="link" className="text-cyan-600 p-0">
             Ver Todas as Atividades
           </Button>
         </div>
