@@ -5,6 +5,9 @@ import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/layout/sidebar'
 import Topbar from '@/components/layout/topbar'
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 export default function DashboardLayout({
   children,
@@ -23,6 +26,7 @@ export default function DashboardLayout({
   }
 
   return (
+    <QueryClientProvider client={queryClient}>
     <div className="flex h-screen overflow-hidden">
     <Sidebar />
     <main className="flex-1 overflow-y-auto bg-gray-50 ml-64"> 
@@ -32,5 +36,6 @@ export default function DashboardLayout({
       </div>
     </main>
   </div>
+  </QueryClientProvider>
   )
 }

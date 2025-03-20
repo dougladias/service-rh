@@ -1,138 +1,273 @@
+// app/funcionarios/page.tsx
+"use client";
 
-'use client'
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { AnimatePresence } from "framer-motion";
+import WorkerCard from "@/components/ui/WorkerCard";
+import EditWorkerModal from "@/components/ui/EditWorkModal";
+import AddWorkerModal from "@/components/ui/AddWorkerModal"; // Import the new modal
+import { IWorker } from "@/models/Worker";
+import { ButtonGlitchBrightness } from "@/components/ui/ButtonGlitch";
 
-import { useState } from 'react'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { 
-  getMockTimeEntries, 
-  getMockEmployeeTimesheet,
-  getMockHourBank
-} from '@/services/timesheet-service'
-import { 
-  Clock, 
-  CalendarCheck, 
-  Timer, 
-  FileSpreadsheet 
-} from 'lucide-react'
+const WorkersPage: React.FC = () => {
+  const queryClient = useQueryClient();
 
-export default function TimeControlPage() {
-  const [timeEntries, setTimeEntries] = useState(getMockTimeEntries())
-  const [selectedEmployee, setSelectedEmployee] = useState('')
-  const [timesheet, setTimesheet] = useState(getMockEmployeeTimesheet('1'))
-  const [hourBank, setHourBank] = useState(getMockHourBank('1'))
+  const [buttonState, setButtonState] = useState<
+    Map<string, { checkInDisabled: boolean; checkOutDisabled: boolean }>
+  >(new Map());
 
-  const handleRegisterEntry = () => {
-    // Lógica para registrar entrada/saída
-    console.log('Registrar entrada/saída')
-  }
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false); // State for the add modal
+  const [selectedWorker, setSelectedWorker] = useState<IWorker | null>(null);
 
+  // 1. Fetch all workers and transform dates
+  const {
+    data: workers = [],
+    isLoading,
+    error,
+  } = useQuery<IWorker[]>({
+    queryKey: ["workers"],
+    queryFn: async () => {
+      const response = await axios.get("/api/workers");
+      return response.data.map((worker: IWorker) => ({
+        ...worker,
+        nascimento: new Date(worker.nascimento),
+        admissao: new Date(worker.admissao),
+      }));
+    },
+    staleTime: 5000,
+  });
+
+  // 2. Delete worker mutation
+  const deleteWorker = useMutation({
+    mutationFn: (workerId: string) =>
+      axios.delete("/api/workers", { data: { id: workerId } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workers"] }),
+    onError: (err) => {
+      console.error("Failed to delete worker", err);
+      alert("Failed to delete worker");
+    },
+  });
+
+  // 3. Update worker (for check-in, check-out, faltou)
+  const updateWorker = useMutation({
+    mutationFn: ({
+      workerId,
+      action,
+    }: {
+      workerId: string;
+      action: "entrada" | "saida" | "faltou";
+    }) => axios.put("/api/workers", { id: workerId, action }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workers"] }),
+    onError: (err) => {
+      console.error("Failed to update worker", err);
+      alert("Failed to update worker");
+    },
+  });
+
+  // 4. Update worker details (for editing)
+  const updateWorkerDetails = useMutation({
+    mutationFn: ({
+      workerId,
+      updates,
+    }: {
+      workerId: string;
+      updates: Partial<IWorker>;
+    }) => axios.put("/api/workers", { id: workerId, updates }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workers"] });
+      setIsEditModalOpen(false);
+    },
+    onError: (err) => {
+      console.error("Failed to update worker details", err);
+      alert("Failed to update worker details");
+    },
+  });
+
+  // 5. Compute button states (check-in disabled if not checked out, etc.)
+  useEffect(() => {
+    const newButtonState = new Map<
+      string,
+      { checkInDisabled: boolean; checkOutDisabled: boolean }
+    >();
+
+    workers.forEach((worker) => {
+      const lastLog = worker.logs[worker.logs.length - 1];
+
+      newButtonState.set(worker._id as string, {
+        checkInDisabled: !!(lastLog && !lastLog.leaveTime),
+        checkOutDisabled: !lastLog || lastLog.leaveTime !== undefined,
+      });
+    });
+
+    setButtonState((prevButtonState) => {
+      const prevEntries = Array.from(prevButtonState.entries());
+      const newEntries = Array.from(newButtonState.entries());
+
+      if (
+        prevEntries.length !== newEntries.length ||
+        prevEntries.some(([key, value], index) => {
+          const [newKey, newValue] = newEntries[index];
+          return (
+            key !== newKey ||
+            value.checkInDisabled !== newValue.checkInDisabled ||
+            value.checkOutDisabled !== newValue.checkOutDisabled
+          );
+        })
+      ) {
+        return new Map(newEntries);
+      }
+      return prevButtonState;
+    });
+  }, [workers]);
+
+  // 6. Handlers
+  const handleDelete = (workerId: string) => {
+    if (confirm("Tem certeza que quer deletar esse funcionário?")) {
+      deleteWorker.mutate(workerId);
+    }
+  };
+
+  const handleEdit = (workerId: string) => {
+    const worker = workers.find((w) => w._id === workerId);
+    if (worker) {
+      setSelectedWorker(worker);
+      setIsEditModalOpen(true);
+    }
+  };
+
+  const handleSave = (updatedWorker: {
+    _id: string;
+    name: string;
+    cpf: string;
+    nascimento: string;
+    admissao: string;
+    salario: string;
+    numero: string;
+    email: string;
+    address: string;
+    contract: string;
+    role: string;
+  }) => {
+    // Convert the simplified worker to IWorker format for the mutation
+    const workerToUpdate: Partial<IWorker> = {
+      ...updatedWorker,
+      nascimento: new Date(updatedWorker.nascimento),
+      admissao: new Date(updatedWorker.admissao),
+    };
+
+    updateWorkerDetails.mutate({
+      workerId: updatedWorker._id,
+      updates: workerToUpdate,
+    });
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedWorker(null);
+  };
+
+  const handleCloseAddModal = () => {
+    setIsAddModalOpen(false);
+  };
+
+  const handleCheckIn = (workerId: string) => {
+    updateWorker.mutate({ workerId, action: "entrada" });
+  };
+
+  const handleCheckOut = (workerId: string) => {
+    updateWorker.mutate({ workerId, action: "saida" });
+  };
+
+  const handleFaltou = (workerId: string) => {
+    updateWorker.mutate({ workerId, action: "faltou" });
+  };
+
+  // 7. Render
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-semibold">Controle de Ponto e Jornada</h1>
-          <p className="text-gray-600">Registro de entrada, saída e gestão de horas</p>
+    <>
+      <div className="w-full mx-auto py-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-white">Funcionários</h1>
+          <ButtonGlitchBrightness
+            text="Adicionar novo Funcionário"
+            onClick={() => setIsAddModalOpen(true)}
+            type="submit"
+            disabled={isLoading}
+            className="px-4 py-2 mr-9"
+          />
         </div>
-        <Button onClick={handleRegisterEntry}>
-          <Clock className="mr-2" size={16} /> Registrar Ponto
-        </Button>
+
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-100 text-gray-700">
+              <th className="py-2 px-4 text-left">Nome</th>
+              <th className="py-2 px-4 text-left">Cargo</th>
+              <th className="py-2 px-4 text-left">Departamento</th>
+              <th className="py-2 px-4 text-left">E-mail</th>
+              <th className="py-2 px-4 text-left">Salário</th>
+              <th className="py-2 px-4 text-left">Status</th>
+              <th className="py-2 px-4 text-left">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="py-4 text-center text-gray-600">
+                  Carregando...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={7} className="py-4 text-center text-red-500">
+                  Error: {(error as Error).message}
+                </td>
+              </tr>
+            ) : workers.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-4 text-center text-gray-600">
+                  Nenhum funcionário encontrado.
+                </td>
+              </tr>
+            ) : (
+              <AnimatePresence>
+                {workers.map((worker) => (
+                  <WorkerCard
+                    key={worker._id as string}
+                    worker={worker}
+                    buttonState={buttonState}
+                    onCheckIn={handleCheckIn}
+                    onFaltou={handleFaltou}
+                    onCheckOut={handleCheckOut}
+                    onDelete={handleDelete}
+                    onEdit={handleEdit}
+                  />
+                ))}
+              </AnimatePresence>
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white border rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <CalendarCheck className="text-blue-500" size={32} />
-            <span className="text-lg font-bold">{timesheet.totalWorkHours}h</span>
-          </div>
-          <p className="text-gray-500">Horas Trabalhadas</p>
-        </div>
-        <div className="bg-white border rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <Timer className="text-green-500" size={32} />
-            <span className="text-lg font-bold">{timesheet.extraHours}h</span>
-          </div>
-          <p className="text-gray-500">Horas Extras</p>
-        </div>
-        <div className="bg-white border rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <FileSpreadsheet className="text-purple-500" size={32} />
-            <span className="text-lg font-bold">{hourBank.availableBankedHours}h</span>
-          </div>
-          <p className="text-gray-500">Banco de Horas</p>
-        </div>
-      </div>
+      {isEditModalOpen && selectedWorker && (
+        <EditWorkerModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          worker={{
+            ...selectedWorker,
+            _id: selectedWorker._id as string,
+            nascimento: selectedWorker.nascimento.toISOString().split("T")[0],
+            admissao: selectedWorker.admissao.toISOString().split("T")[0],
+          }}
+          onSave={handleSave}
+        />
+      )}
 
-      {/* Tabela de Registros de Ponto */}
-      <div className="bg-white border rounded-lg p-4 shadow-sm">
-        <h3 className="text-lg font-semibold mb-4">Registros de Ponto</h3>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Funcionário</TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead>Entrada</TableHead>
-              <TableHead>Saída</TableHead>
-              <TableHead>Horas Trabalhadas</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {timeEntries.map((entry) => (
-              <TableRow key={entry.id}>
-                <TableCell>{entry.employeeName}</TableCell>
-                <TableCell>{entry.date}</TableCell>
-                <TableCell>{entry.entryTime}</TableCell>
-                <TableCell>{entry.exitTime}</TableCell>
-                <TableCell>{entry.totalHours}h</TableCell>
-                <TableCell>
-                  <span className={`
-                    px-2 py-1 rounded-full text-xs font-medium
-                    ${
-                      entry.status === 'present' 
-                        ? 'bg-green-100 text-green-800' 
-                        : entry.status === 'late'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                    }
-                  `}>
-                    {
-                      entry.status === 'present' 
-                        ? 'Presente' 
-                        : entry.status === 'late'
-                        ? 'Atrasado'
-                        : 'Ausente'
-                    }
-                  </span>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  )
-}
+      <AddWorkerModal isOpen={isAddModalOpen} onClose={handleCloseAddModal} />
+    </>
+  );
+};
+
+export default WorkersPage;
