@@ -144,7 +144,7 @@ const WorkerCard: React.FC<WorkerCardProps> = ({
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="flex justify-between border border-gray-700 rounded p-2"
+                  className="flex justify-between border border-gray-300 rounded p-2"
                 >
                   {log.faltou ? (
                     <span className="text-red-500 text-center w-full">

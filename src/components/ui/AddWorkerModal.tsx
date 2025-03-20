@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { ButtonGlitchBrightness } from "./ButtonGlitch";
 
 interface AddWorkerModalProps {
   isOpen: boolean;
@@ -160,6 +161,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="text"
                 id="name"
                 name="name"
+                className="text-white"
                 value={name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                 required
@@ -173,6 +175,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="text"
                 id="cpf"
                 name="cpf"
+                className="text-white"
                 value={cpf}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCpf(e.target.value)}
                 required
@@ -186,6 +189,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="date"
                 id="nascimento"
                 name="nascimento"
+                className="text-white"
                 value={nascimento}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNascimento(e.target.value)}
                 required
@@ -199,6 +203,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="date"
                 id="admissao"
                 name="admissao"
+                className="text-white"
                 value={admissao}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdmissao(e.target.value)}
                 required
@@ -212,6 +217,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="text"
                 id="salario"
                 name="salario"
+                className="text-white"
                 value={salario}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSalario(e.target.value)}
                 required
@@ -225,6 +231,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="text"
                 id="ajuda"
                 name="ajuda"
+                className="text-white"
                 value={ajuda}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAjuda(e.target.value)}
                 required
@@ -238,6 +245,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="text"
                 id="numero"
                 name="numero"
+                className="text-white"
                 value={numero}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNumero(e.target.value)}
                 required
@@ -251,6 +259,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="email"
                 id="email"
                 name="email"
+                className="text-white"
                 value={email}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 required
@@ -264,6 +273,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="text"
                 id="address"
                 name="address"
+                className="text-white"
                 value={address}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAddress(e.target.value)}
                 required
@@ -277,6 +287,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="text"
                 id="contract"
                 name="contract"
+                className="text-white"
                 value={contract}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContract(e.target.value)}
                 required
@@ -290,19 +301,20 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose }) => {
                 type="text"
                 id="role"
                 name="role"
+                className="text-white"
                 value={role}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRole(e.target.value)}
                 required
               />
             </motion.div>
-            <motion.button
-              type="submit"
-              className="w-full px-4 py-2 bg-cyan-500 hover:bg-cyan-600 rounded transition-colors flex items-center justify-center"
-              variants={inputVariants}
-              disabled={addWorker.isPending}
-            >
-              {addWorker.isPending ? "Adicionando..." : "Adicionar Funcionário"}
-            </motion.button>
+            <motion.div variants={inputVariants}>
+              <ButtonGlitchBrightness
+                text={addWorker.isPending ? "Adicionando..." : "Adicionar Funcionário"}
+                type="submit"
+                disabled={addWorker.isPending}
+                className="w-full flex text-center items-center justify-center"
+              />
+            </motion.div>
           </motion.form>
         )}
       </motion.div>

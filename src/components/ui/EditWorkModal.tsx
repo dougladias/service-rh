@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { ButtonGlitchBrightness } from "./ButtonGlitch";
 
 interface EditWorkerModalProps {
   isOpen: boolean;
@@ -101,7 +102,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
 
         <motion.form
           onSubmit={handleSubmit}
-          className="space-y-4"
+          className="space-y-4 text-white"
           initial="hidden"
           animate="visible"
           variants={formVariants}
@@ -237,21 +238,21 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
             />
           </motion.div>
           <div className="flex justify-end space-x-2">
-            <motion.button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded transition-colors"
-              variants={inputVariants}
-            >
-              Cancelar
-            </motion.button>
-            <motion.button
-              type="submit"
-              className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 rounded transition-colors"
-              variants={inputVariants}
-            >
-              Salvar
-            </motion.button>
+            <motion.div variants={inputVariants}>
+              <ButtonGlitchBrightness
+                text="Cancelar"
+                type="button"
+                onClick={onClose}
+                className="bg-red-500/80 hover:bg-red-600 dark:bg-red-500/80 dark:hover:bg-red-600"
+              />
+            </motion.div>
+            <motion.div variants={inputVariants}>
+              <ButtonGlitchBrightness
+                text="Salvar"
+                type="submit"
+                className="bg-cyan-500/80 hover:bg-cyan-600 dark:bg-cyan-500/80 dark:hover:bg-cyan-600"
+              />
+            </motion.div>
           </div>
         </motion.form>
       </motion.div>
