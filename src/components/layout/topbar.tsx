@@ -1,6 +1,7 @@
 
 'use client'
 
+import { signOut } from 'next-auth/react'
 import { Bell, User, ChevronDown } from 'lucide-react'
 import {
     DropdownMenu,
@@ -11,8 +12,18 @@ import {
     DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
 
 export default function Topbar() {
+    const router = useRouter()
+
+    const handleLogout = async () => {
+        await signOut({ 
+            redirect: false 
+        })
+        router.push('/auth/login')
+    }
+
     return (
         <header className="sticky top-0 z-50 bg-white border-b shadow-sm h-16 flex items-center justify-between px-6">
             <div className="text-gray-700 text-lg font-medium">
@@ -40,7 +51,12 @@ export default function Topbar() {
                         <DropdownMenuItem>Perfil</DropdownMenuItem>
                         <DropdownMenuItem>Configurações</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">Sair</DropdownMenuItem>
+                        <DropdownMenuItem 
+                            className="text-red-600" 
+                            onSelect={handleLogout}
+                        >
+                            Sair
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>

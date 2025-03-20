@@ -3,11 +3,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+
 import { 
   LayoutDashboard, 
   Users, 
   FileText, 
-  Settings 
+  Settings,
+  Clock 
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +33,11 @@ const menuItems = [
     icon: FileText, 
     label: 'Relatórios', 
     href: '/dashboard/relatorios' 
+  },
+  { 
+    icon: Clock, 
+    label: 'Controle de Ponto', 
+    href: '/dashboard/controle-ponto' 
   },
   { 
     icon: Settings, 
