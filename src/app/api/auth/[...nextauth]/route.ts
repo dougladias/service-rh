@@ -21,7 +21,8 @@ const handler = NextAuth({
           return { 
             id: "1", 
             email: credentials.email,
-            name: "Administrador" 
+            name: "Administrador",
+            role: "admin"
           }
         }
         return null

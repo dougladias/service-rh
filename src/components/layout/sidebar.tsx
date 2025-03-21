@@ -16,10 +16,10 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// Dynamically import Lottie to prevent SSR issues
+// Importação dinâmica do Lottie para evitar problemas de SSR
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
-// Import your Lottie JSON file
+// Importe seu arquivo JSON do Lottie
 import LogoGloboo from '../../../public/logoAnimated.json'
 
 const menuItems = [
@@ -77,7 +77,7 @@ export default function Sidebar() {
   const [isMounted, setIsMounted] = useState(false)
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
 
-  // Only render Lottie after component mounts on client
+  // Renderiza o Lottie apenas após o componente ser montado no cliente
   useEffect(() => {
     setIsMounted(true)
   }, [])
@@ -103,23 +103,40 @@ export default function Sidebar() {
         <nav className="space-y-2">
           {menuItems.map((item) => (
             <div key={item.href}>
-              <div 
-                className={cn(
-                  "flex items-center p-3 rounded-lg transition-colors duration-200 cursor-pointer",
-                  pathname === item.href 
-                    ? "bg-black text-cyan-300" 
-                    : "hover:bg-gray-700 text-gray-300"
-                )}
-                onClick={() => item.subItems && toggleSubmenu(item.label)}
-              >
-                <item.icon className="mr-3" size={20} />
-                <div className="flex-1 flex justify-between items-center">
-                  {item.label}
-                  {item.subItems && (
-                    expandedMenu === item.label ? <ChevronDown size={16} /> : <ChevronRight size={16} />
+              {item.subItems ? (
+                // Item com submenu
+                <div 
+                  className={cn(
+                    "flex items-center p-3 rounded-lg transition-colors duration-200 cursor-pointer",
+                    pathname === item.href 
+                      ? "bg-black text-cyan-300" 
+                      : "hover:bg-gray-700 text-gray-300"
                   )}
+                  onClick={() => toggleSubmenu(item.label)}
+                >
+                  <item.icon className="mr-3" size={20} />
+                  <div className="flex-1 flex justify-between items-center">
+                    {item.label}
+                    {expandedMenu === item.label ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                // Item sem submenu - usando Link para navegação
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "flex items-center p-3 rounded-lg transition-colors duration-200",
+                    pathname === item.href 
+                      ? "bg-black text-cyan-300" 
+                      : "hover:bg-gray-700 text-gray-300"
+                  )}
+                >
+                  <item.icon className="mr-3" size={20} />
+                  <div className="flex-1">
+                    {item.label}
+                  </div>
+                </Link>
+              )}
               
               {item.subItems && expandedMenu === item.label && (
                 <div className="pl-6 mt-1 space-y-1">
