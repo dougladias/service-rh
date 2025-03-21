@@ -35,6 +35,23 @@ const menuItems = [
   },
   { 
     icon: FileText, 
+    label: 'Documentos', 
+    href: '/dashboard/documentos',
+    subItems: [
+      { 
+        icon: FileText, 
+        label: 'File Documentos', 
+        href: '/dashboard/documentos' 
+      },
+      { 
+        icon: FileText, 
+        label: 'Modelos', 
+        href: '/dashboard/documentos/modelos' 
+      }     
+    ] 
+  },
+  { 
+    icon: FileText, 
     label: 'Folha Salarial', 
     href: '/dashboard/folha-pagamento',
     subItems: [
