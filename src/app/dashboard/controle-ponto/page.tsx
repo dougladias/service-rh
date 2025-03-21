@@ -5,6 +5,8 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+
 import WorkerCard from "@/components/ui/WorkerCard";
 import EditWorkerModal from "@/components/ui/EditWorkModal";
 import AddWorkerModal from "@/components/ui/AddWorkerModal"; // Import the new modal
@@ -192,7 +194,9 @@ const WorkersPage: React.FC = () => {
         <div className="flex justify-between items-center mb-6">
           <div className="flex flex-col">
             <h2 className="text-2xl font-bold text-black">Controle de Ponto</h2>
-            <p className="text-gray-600">Gerenciamento de entradas e saídas dos funcionários</p>
+            <p className="text-gray-600">
+              Gerenciamento de entradas e saídas dos funcionários
+            </p>
           </div>
           <ButtonGlitchBrightness
             text="Adicionar novo Funcionário"
@@ -218,8 +222,27 @@ const WorkersPage: React.FC = () => {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={7} className="py-4 text-center text-gray-600">
-                  Carregando...
+                <td colSpan={7} className="py-8 text-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <motion.div
+                      className="w-12 h-12 mb-3 border-4 border-gray-200 rounded-full"
+                      style={{ borderTopColor: "#22d3ee" }} // cyan-400 color
+                      animate={{ rotate: 360 }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                    />
+                    <motion.span
+                      className="text-cyan-400 font-medium"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      Carregando dados...
+                    </motion.span>
+                  </div>
                 </td>
               </tr>
             ) : error ? (

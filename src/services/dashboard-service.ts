@@ -15,28 +15,32 @@ export const getDashboardCards = (): DashboardCard[] => [
     title: 'Total de Funcionários',
     value: '32',
     percentage: 1.5,
-    positive: true
+    positive: true,
+    link: '/dashboard/funcionarios'
   },
   {
     icon: DollarSign,
     title: 'Folha Mensal',
     value: 'R$ 128.250,00',
     percentage: 2.3,
-    positive: true
+    positive: true,
+    link: '/dashboard/folha-pagamento'
   },
   {
     icon: FileText,
     title: 'Holerites Gerados',
     value: '32',
     percentage: 0,
-    positive: true
+    positive: true,
+    link: '/dashboard/relatorios'
   },
   {
     icon: TrendingUp,
     title: 'Custo Médio',
     value: 'R$ 4.007,81',
     percentage: 1.2,
-    positive: false
+    positive: false,
+    link: '/dashboard/relatorios'
   }
 ]
 

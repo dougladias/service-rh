@@ -64,7 +64,7 @@ export default function Sidebar() {
   }, [])
 
   return (
-    <aside className="fixed left-0 top-17 bt-black h-full w-64 bg-white border-r shadow-sm z-40">
+    <aside className="fixed left-0 bt-black h-full w-64 bg-gray-800 border-r shadow-sm z-40">
       <div className="p-4">
         <div className="flex justify-center">
           {isMounted && (
@@ -86,7 +86,7 @@ export default function Sidebar() {
                 "flex items-center p-3 rounded-lg transition-colors duration-200",
                 pathname === item.href 
                   ? "bg-black text-cyan-300" 
-                  : "hover:bg-gray-100 text-gray-700"
+                  : "hover:bg-gray-700 text-gray-300"
               )}
             >
               <item.icon className="mr-3" size={20} />

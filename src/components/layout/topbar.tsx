@@ -26,8 +26,9 @@ export default function Topbar() {
 
     return (
         <header className="sticky top-0 z-50 bg-white border-b shadow-sm h-16 flex items-center justify-between px-6">
-            <div className="text-gray-700 text-lg font-medium">
-                Bem-vindo de volta! Hoje é {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            <div className="text-gray-700 text-[0.9rem] font-medium">
+                Bem-vindo de volta! Hoje é <span className="text-cyan-500">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                
             </div>
             <div className="flex items-center space-x-4">
     <div className="relative">
@@ -36,7 +37,7 @@ export default function Topbar() {
                 <div className="relative cursor-pointer">
                     <Bell className="text-gray-600" size={20} />
                     <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                        1
+                        2
                     </span>
                 </div>
             </DropdownMenuTrigger>

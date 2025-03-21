@@ -8,6 +8,7 @@ export interface DashboardCard {
   value: string;
   percentage: number;
   positive: boolean;
+  link: string;
 }
 
 export interface RecentActivity {
