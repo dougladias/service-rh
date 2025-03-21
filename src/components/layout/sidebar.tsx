@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { 
   LayoutDashboard, 
@@ -35,9 +35,14 @@ const menuItems = [
   },
   { 
     icon: FileText, 
-    label: 'Folha de Pagamento', 
+    label: 'Folha Salarial', 
     href: '/dashboard/folha-pagamento',
     subItems: [
+      { 
+        icon: FileText, 
+        label: 'Pagamentos', 
+        href: '/dashboard/folha-pagamento' 
+      },
       { 
         icon: FileText, 
         label: 'Holerites', 
@@ -58,7 +63,7 @@ const menuItems = [
   { 
     icon: Clock, 
     label: 'Controle', 
-    href: '/dashboard/controle',
+    href: '/dashboard/controle-ponto',
     subItems: [
       { 
         icon: Clock, 
@@ -89,10 +94,41 @@ export default function Sidebar() {
   const [isMounted, setIsMounted] = useState(false)
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
 
+  // Define interface for menu items
+  interface MenuItem {
+    icon: React.ElementType;
+    label: string;
+    href: string;
+    subItems?: MenuItem[];
+  }
+
+  // Função para verificar se um item pai deve estar ativo com base na rota atual
+  const isActiveParent = useCallback((currentPath: string | null, item: MenuItem) => {
+    if (!currentPath) return false
+    
+    if (currentPath === item.href) return true
+    
+    if (item.subItems) {
+      return item.subItems.some((subItem) => 
+        currentPath === subItem.href || 
+        currentPath.startsWith(`${subItem.href}/`)
+      )
+    }
+    
+    return false
+  }, [])
+
   // Renderiza o Lottie apenas após o componente ser montado no cliente
   useEffect(() => {
     setIsMounted(true)
-  }, [])
+    
+    // Expande automaticamente o menu que contém a rota atual
+    menuItems.forEach(item => {
+      if (item.subItems && isActiveParent(pathname, item)) {
+        setExpandedMenu(item.label)
+      }
+    })
+  }, [pathname, isActiveParent])
 
   const toggleSubmenu = (label: string) => {
     setExpandedMenu(expandedMenu === label ? null : label)
@@ -120,7 +156,7 @@ export default function Sidebar() {
                 <div 
                   className={cn(
                     "flex items-center p-3 rounded-lg transition-colors duration-200 cursor-pointer",
-                    pathname === item.href 
+                    isActiveParent(pathname, item)
                       ? "bg-black text-cyan-300" 
                       : "hover:bg-gray-700 text-gray-300"
                   )}

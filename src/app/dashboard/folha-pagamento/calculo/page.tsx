@@ -117,7 +117,7 @@ export default function CalculoSalarioPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-2 mb-8">
-        <Link href="/folha-pagamento">
+        <Link href="/dashboard/folha-pagamento">
           <Button variant="outline" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
