@@ -36,7 +36,19 @@ const menuItems = [
   { 
     icon: FileText, 
     label: 'Folha de Pagamento', 
-    href: '/dashboard/folha-pagamento' 
+    href: '/dashboard/folha-pagamento',
+    subItems: [
+      { 
+        icon: FileText, 
+        label: 'Holerites', 
+        href: '/dashboard/folha-pagamento/holerites' 
+      },
+      { 
+        icon: FileText, 
+        label: 'Calculo', 
+        href: '/dashboard/folha-pagamento/calculo' 
+      }    
+    ] 
   },
   { 
     icon: FileText, 
