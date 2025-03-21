@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import axios from 'axios'
 import { 
   Table, 
   TableBody, 
@@ -28,238 +29,224 @@ import {
 import { 
   Trash2,
   Check,
-  Wrench
+  Wrench,
+  Loader2
 } from 'lucide-react'
+import { ButtonGlitchBrightness } from '@/components/ui/ButtonGlitch'
+// import { iPrestador } from '@/models/Prestadores'
 
-// Tipos para prestadores de serviço
-interface ServiceProvider {
-  id: string
-  fullName: string
-  cpf: string
-  serviceType: string  // Tipo de serviço (eletricista, encanador, etc.)
-  company: string      // Empresa que representa
-  entryTime: string
-  exitTime?: string
-  serviceDescription?: string // Descrição do serviço a ser realizado
+// UI model that matches our MongoDB model
+interface UiPrestador {
+  id: string;
+  name: string;
+  company: string;
+  address: string;
+  phone: string;
+  service: string;
+  rg: string;
+  cpf: string;
+  cnpj: string;
+  entryTime?: string;
+  exitTime?: string;
+  logs?: { entryTime: string; leaveTime?: string }[];
 }
 
-interface ServiceProviderFilter {
-  fullName?: string
-  cpf?: string
-  serviceType?: string
-  company?: string
-}
-
-// Funções mock com persistência usando localStorage
-export const getMockServiceProviders = (filter?: ServiceProviderFilter): ServiceProvider[] => {
-  // Tenta recuperar prestadores do localStorage ou usa os dados iniciais
-  let providers: ServiceProvider[] = [];
-  
-  try {
-    const savedProviders = localStorage.getItem('serviceProviders');
-    if (savedProviders) {
-      providers = JSON.parse(savedProviders);
-    } else {
-      // Dados iniciais
-      providers = [
-        {
-          id: '1',
-          fullName: 'João Silva',
-          cpf: '12345678900',
-          serviceType: 'Eletricista',
-          company: 'Elétrica Rápida Ltda',
-          entryTime: '21/03/2025 08:30:00',
-          serviceDescription: 'Manutenção na rede elétrica do 3º andar'
-        },
-        {
-          id: '2',
-          fullName: 'Carlos Oliveira',
-          cpf: '98765432100',
-          serviceType: 'Encanador',
-          company: 'Hidráulica Express',
-          entryTime: '21/03/2025 09:15:00',
-          exitTime: '21/03/2025 11:45:00',
-          serviceDescription: 'Reparo de vazamento no banheiro térreo'
-        },
-        {
-          id: '3',
-          fullName: 'Maria Pereira',
-          cpf: '45678912300',
-          serviceType: 'Pintora',
-          company: 'Cores & Cia',
-          entryTime: '20/03/2025 13:00:00',
-          serviceDescription: 'Pintura da sala de reuniões'
-        }
-      ];
-      // Salva os dados iniciais no localStorage
-      localStorage.setItem('serviceProviders', JSON.stringify(providers));
-    }
-  } catch (error) {
-    console.error("Erro ao carregar prestadores do localStorage:", error);
-    // Usa os dados padrão em caso de erro
-    providers = [
-      {
-        id: '1',
-        fullName: 'João Silva',
-        cpf: '12345678900',
-        serviceType: 'Eletricista',
-        company: 'Elétrica Rápida Ltda',
-        entryTime: '21/03/2025 08:30:00',
-        serviceDescription: 'Manutenção na rede elétrica do 3º andar'
-      },
-      {
-        id: '2',
-        fullName: 'Carlos Oliveira',
-        cpf: '98765432100',
-        serviceType: 'Encanador',
-        company: 'Hidráulica Express',
-        entryTime: '21/03/2025 09:15:00',
-        exitTime: '21/03/2025 11:45:00',
-        serviceDescription: 'Reparo de vazamento no banheiro térreo'
-      }
-    ];
-  }
-
-  // Aplicar filtros
-  return providers.filter(provider => {
-    if (filter?.fullName && !provider.fullName.toLowerCase().includes(filter.fullName.toLowerCase())) return false
-    if (filter?.cpf && provider.cpf !== filter.cpf) return false
-    if (filter?.serviceType && provider.serviceType !== filter.serviceType) return false
-    if (filter?.company && !provider.company.toLowerCase().includes(filter.company.toLowerCase())) return false
-    return true
-  })
-}
-
-export const addServiceProvider = async (provider: Partial<ServiceProvider>): Promise<ServiceProvider> => {
-  // Cria novo prestador de serviço
-  const newProvider = {
-    id: Math.random().toString(36).substr(2, 9),
-    fullName: provider.fullName || '',
-    cpf: provider.cpf || '',
-    serviceType: provider.serviceType || '',
-    company: provider.company || '',
-    entryTime: new Date().toLocaleString('pt-BR'),
-    serviceDescription: provider.serviceDescription || '',
-    exitTime: undefined
-  };
-  
-  try {
-    // Recupera lista atual
-    const providers = getMockServiceProviders();
-    // Adiciona novo prestador
-    const updatedProviders = [newProvider, ...providers];
-    // Salva no localStorage
-    localStorage.setItem('serviceProviders', JSON.stringify(updatedProviders));
-  } catch (error) {
-    console.error("Erro ao salvar novo prestador:", error);
-  }
-  
-  return newProvider;
-}
-
-export const registerServiceProviderExit = async (providerId: string): Promise<ServiceProvider | null> => {
-  try {
-    // Recupera prestadores do localStorage
-    const providers = getMockServiceProviders();
-    const currentProvider = providers.find(p => p.id === providerId);
-    
-    if (!currentProvider) return null;
-    
-    // Atualiza o horário de saída
-    const exitTime = new Date().toLocaleString('pt-BR');
-    const updatedProvider = {
-      ...currentProvider,
-      exitTime: exitTime
-    };
-    
-    // Atualiza a lista de prestadores
-    const updatedProviders = providers.map(p => 
-      p.id === providerId ? updatedProvider : p
-    );
-    
-    // Salva no localStorage
-    localStorage.setItem('serviceProviders', JSON.stringify(updatedProviders));
-    
-    return updatedProvider;
-  } catch (error) {
-    console.error("Erro ao registrar saída:", error);
-    return null;
-  }
-}
-
-export const deleteServiceProvider = async (providerId: string): Promise<boolean> => {
-  try {
-    // Recupera prestadores do localStorage
-    const providers = getMockServiceProviders();
-    
-    // Remove o prestador da lista
-    const updatedProviders = providers.filter(p => p.id !== providerId);
-    
-    // Salva no localStorage
-    localStorage.setItem('serviceProviders', JSON.stringify(updatedProviders));
-    
-    return true;
-  } catch (error) {
-    console.error("Erro ao deletar prestador:", error);
-    return false;
-  }
+interface PrestadorFilter {
+  name?: string;
+  cpf?: string;
+  service?: string;
+  company?: string;
 }
 
 export default function ServiceProvidersPage() {
-  // Inicializa o estado com prestadores do localStorage
-  const [providers, setProviders] = useState(() => getMockServiceProviders())
-  const [newProvider, setNewProvider] = useState<Partial<ServiceProvider>>({})
-  const [filter, setFilter] = useState<ServiceProviderFilter>({})
+  const [prestadores, setPrestadores] = useState<UiPrestador[]>([])
+  const [newPrestador, setNewPrestador] = useState({
+    name: '',
+    company: '',
+    address: '',
+    phone: '',
+    service: '',
+    rg: '',
+    cpf: '',
+    cnpj: ''
+  })
+  const [filter, setFilter] = useState<PrestadorFilter>({})
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [statusMessage, setStatusMessage] = useState({ text: '', isError: false })
 
-  const handleAddProvider = async () => {
-    if (Object.keys(newProvider).length > 0) {
-      const providerToAdd = {
-        fullName: newProvider.fullName || '',
-        cpf: newProvider.cpf || '',
-        serviceType: newProvider.serviceType || '',
-        company: newProvider.company || '',
-        serviceDescription: newProvider.serviceDescription || ''
-      }
-
-      const addedProvider = await addServiceProvider(providerToAdd)
-      setProviders([addedProvider, ...providers])
-      setNewProvider({})
+  // Convert MongoDB prestador to UI format
+  const convertPrestadorData = useCallback((prestador: UiPrestador): UiPrestador => {
+    return {
+      id: prestador.id || '',
+      name: prestador.name || '',
+      company: prestador.company || '',
+      address: prestador.address || '',
+      phone: prestador.phone || '',
+      service: prestador.service || '',
+      rg: prestador.rg || '',
+      cpf: prestador.cpf || '',
+      cnpj: prestador.cnpj || '',
+      entryTime: prestador.logs && prestador.logs.length > 0
+        ? new Date(prestador.logs[prestador.logs.length - 1].entryTime).toLocaleString('pt-BR')
+        : undefined,
+      exitTime: prestador.logs && prestador.logs.length > 0 && prestador.logs[prestador.logs.length - 1].leaveTime
+        ? new Date(String(prestador.logs[prestador.logs.length - 1].leaveTime)).toLocaleString('pt-BR')
+        : undefined
     }
-  }
+  }, [])
 
-  const handleRegisterExit = async (providerId: string) => {
+  // Fetch all service providers
+  const fetchPrestadores = useCallback(async () => {
+    setIsLoading(true)
     try {
-      // Chama a função do serviço que agora persiste no localStorage
-      const updatedProvider = await registerServiceProviderExit(providerId)
+      const response = await axios.get('/api/prestador')
       
-      if (updatedProvider) {
-        // Atualiza o estado para refletir as mudanças
-        setProviders(getMockServiceProviders()) // Recarrega do localStorage
+      if (Array.isArray(response.data)) {
+        const mappedPrestadores = response.data.map(convertPrestadorData)
+        setPrestadores(mappedPrestadores)
+      } else {
+        setPrestadores([])
       }
     } catch (error) {
-      console.error("Erro ao registrar saída:", error)
+      console.error('Failed to fetch prestadores:', error)
+      setStatusMessage({ text: 'Falha ao carregar prestadores', isError: true })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [convertPrestadorData])
+
+  // Add new provider
+  const handleAddPrestador = async () => {
+    // Validate required fields
+    if (!newPrestador.name || !newPrestador.cpf || !newPrestador.service || 
+        !newPrestador.company || !newPrestador.rg || !newPrestador.phone || 
+        !newPrestador.cnpj || !newPrestador.address) {
+      setStatusMessage({ text: 'Preencha todos os campos obrigatórios', isError: true })
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await axios.post('/api/prestador', {
+        ...newPrestador,
+        logs: [{ entryTime: new Date() }]
+      })
+      
+      // Reset form and close dialog
+      setNewPrestador({
+        name: '',
+        company: '',
+        address: '',
+        phone: '',
+        service: '',
+        rg: '',
+        cpf: '',
+        cnpj: ''
+      })
+      setIsDialogOpen(false)
+      
+      // Refresh list
+      await fetchPrestadores()
+      setStatusMessage({ text: 'Prestador adicionado com sucesso', isError: false })
+    } catch (error) {
+      console.error('Failed to add prestador:', error)
+      setStatusMessage({ text: 'Falha ao adicionar prestador', isError: true })
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleDeleteProvider = async (providerId: string) => {
-    const deleted = await deleteServiceProvider(providerId)
-    if (deleted) {
-      // Recarrega a lista atualizada do localStorage
-      setProviders(getMockServiceProviders())
+  // Register provider exit
+  const handleRegisterExit = async (prestadorId: string) => {
+    setIsLoading(true)
+    try {
+      await axios.put('/api/prestador', {
+        id: prestadorId,
+        action: 'saida'
+      })
+      
+      await fetchPrestadores()
+      setStatusMessage({ text: 'Saída registrada com sucesso', isError: false })
+    } catch (error) {
+      console.error('Failed to register exit:', error)
+      setStatusMessage({ text: 'Falha ao registrar saída', isError: true })
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleFilter = () => {
-    const filteredProviders = getMockServiceProviders(filter)
-    setProviders(filteredProviders)
+  // Delete provider
+  const handleDeletePrestador = async (prestadorId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este prestador?')) return
+    
+    setIsLoading(true)
+    try {
+      await axios.delete('/api/prestador', {
+        data: { id: prestadorId }
+      })
+      
+      await fetchPrestadores()
+      setStatusMessage({ text: 'Prestador excluído com sucesso', isError: false })
+    } catch (error) {
+      console.error('Failed to delete prestador:', error)
+      setStatusMessage({ text: 'Falha ao excluir prestador', isError: true })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Filter service providers
+  const handleFilter = async () => {
+    setIsLoading(true)
+    try {
+      const response = await axios.get('/api/prestador')
+      
+      if (!Array.isArray(response.data)) {
+        setPrestadores([])
+        return
+      }
+      
+      let filteredPrestadores = response.data.map(convertPrestadorData)
+      
+      if (filter.name) {
+        filteredPrestadores = filteredPrestadores.filter((p) => 
+          p.name && p.name.toLowerCase().includes(filter.name!.toLowerCase())
+        )
+      }
+      
+      if (filter.cpf) {
+        filteredPrestadores = filteredPrestadores.filter((p) => 
+          p.cpf && p.cpf.includes(filter.cpf!)
+        )
+      }
+      
+      if (filter.service) {
+        filteredPrestadores = filteredPrestadores.filter((p) => 
+          p.service && p.service === filter.service
+        )
+      }
+      
+      if (filter.company) {
+        filteredPrestadores = filteredPrestadores.filter((p) => 
+          p.company && p.company.toLowerCase().includes(filter.company!.toLowerCase())
+        )
+      }
+      
+      setPrestadores(filteredPrestadores)
+    } catch (error) {
+      console.error('Failed to filter prestadores:', error)
+      setStatusMessage({ text: 'Falha ao filtrar prestadores', isError: true })
+    } finally {
+      setIsLoading(false)
+    }
   }
   
-  // Adiciona um efeito para atualizar os prestadores quando a página é carregada
+  // Load service providers on page load
   useEffect(() => {
-    // Atualiza a lista de prestadores do localStorage
-    setProviders(getMockServiceProviders())
-  }, [])
+    fetchPrestadores()
+  }, [fetchPrestadores])
 
   // Lista de tipos de serviço para o select
   const serviceTypes = [
@@ -277,47 +264,94 @@ export default function ServiceProvidersPage() {
 
   return (
     <div className="space-y-6">
+      {/* Status Message */}
+      {statusMessage.text && (
+        <div className={`p-4 rounded-md ${statusMessage.isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+          {statusMessage.text}
+          <button 
+            className="ml-4 text-sm underline" 
+            onClick={() => setStatusMessage({ text: '', isError: false })}>
+            Fechar
+          </button>
+        </div>
+      )}
+      
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Prestadores de Serviço</h1>
         
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Cadastrar Prestador</Button>
+            <ButtonGlitchBrightness 
+              text="Cadastrar Prestador" 
+              className="bg-black hover:bg-gray-600 dark:bg-blue-500/80"
+            />
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Novo Prestador de Serviço</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 flex flex-col items-center justify-center">
               <div className="space-y-2">
-                <label htmlFor="name">Nome Completo</label>
+                <label htmlFor="name">Nome Completo*</label>
                 <Input 
                   id="name" 
-                  value={newProvider.fullName || ''} 
-                  onChange={(e) => setNewProvider({...newProvider, fullName: e.target.value})}
+                  value={newPrestador.name} 
+                  onChange={(e) => setNewPrestador({...newPrestador, name: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="cpf">CPF</label>
+                <label htmlFor="cpf">CPF*</label>
                 <Input 
                   id="cpf" 
-                  value={newProvider.cpf || ''} 
-                  onChange={(e) => setNewProvider({...newProvider, cpf: e.target.value})}
+                  value={newPrestador.cpf} 
+                  onChange={(e) => setNewPrestador({...newPrestador, cpf: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="company">Empresa</label>
+                <label htmlFor="rg">RG*</label>
+                <Input 
+                  id="rg" 
+                  value={newPrestador.rg} 
+                  onChange={(e) => setNewPrestador({...newPrestador, rg: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="company">Empresa*</label>
                 <Input 
                   id="company" 
-                  value={newProvider.company || ''} 
-                  onChange={(e) => setNewProvider({...newProvider, company: e.target.value})}
+                  value={newPrestador.company} 
+                  onChange={(e) => setNewPrestador({...newPrestador, company: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="serviceType">Tipo de Serviço</label>
+                <label htmlFor="cnpj">CNPJ*</label>
+                <Input 
+                  id="cnpj" 
+                  value={newPrestador.cnpj} 
+                  onChange={(e) => setNewPrestador({...newPrestador, cnpj: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="address">Endereço*</label>
+                <Input 
+                  id="address" 
+                  value={newPrestador.address} 
+                  onChange={(e) => setNewPrestador({...newPrestador, address: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="phone">Telefone*</label>
+                <Input 
+                  id="phone" 
+                  value={newPrestador.phone} 
+                  onChange={(e) => setNewPrestador({...newPrestador, phone: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="service">Tipo de Serviço*</label>
                 <Select 
-                  value={newProvider.serviceType} 
-                  onValueChange={(value) => setNewProvider({...newProvider, serviceType: value})}
+                  value={newPrestador.service} 
+                  onValueChange={(value) => setNewPrestador({...newPrestador, service: value})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo de serviço" />
@@ -329,15 +363,12 @@ export default function ServiceProvidersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <label htmlFor="serviceDescription">Descrição do Serviço</label>
-                <Input 
-                  id="serviceDescription" 
-                  value={newProvider.serviceDescription || ''} 
-                  onChange={(e) => setNewProvider({...newProvider, serviceDescription: e.target.value})}
-                />
-              </div>
-              <Button onClick={handleAddProvider} className="w-full">Cadastrar</Button>
+              <ButtonGlitchBrightness 
+                text={isLoading ? "Cadastrando..." : "Cadastrar"}
+                onClick={handleAddPrestador}
+                disabled={isLoading}
+                className="w-fit text-center"
+              />
             </div>
           </DialogContent>
         </Dialog>
@@ -356,8 +387,8 @@ export default function ServiceProvidersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
             <Input 
               placeholder="Nome" 
-              value={filter.fullName || ''} 
-              onChange={(e) => setFilter({...filter, fullName: e.target.value})}
+              value={filter.name || ''} 
+              onChange={(e) => setFilter({...filter, name: e.target.value})}
             />
             <Input 
               placeholder="CPF" 
@@ -370,8 +401,8 @@ export default function ServiceProvidersPage() {
               onChange={(e) => setFilter({...filter, company: e.target.value})}
             />
             <Select 
-              value={filter.serviceType} 
-              onValueChange={(value) => setFilter({...filter, serviceType: value})}
+              value={filter.service} 
+              onValueChange={(value) => setFilter({...filter, service: value})}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os serviços" />
@@ -382,10 +413,22 @@ export default function ServiceProvidersPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={handleFilter} className="md:col-span-2 lg:col-span-4">Filtrar</Button>
+            <ButtonGlitchBrightness 
+              text={isLoading ? "Filtrando..." : "Filtrar"} 
+              onClick={handleFilter}
+              disabled={isLoading}
+              className="md:col-span-2 lg:col-span-4 w-fit"
+            />
           </div>
         )}
       </div>
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex justify-center items-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
 
       {/* Tabela de Prestadores de Serviço */}
       <Table>
@@ -393,55 +436,65 @@ export default function ServiceProvidersPage() {
           <TableRow>
             <TableHead>Nome</TableHead>
             <TableHead>CPF</TableHead>
+            <TableHead>CNPJ</TableHead>
             <TableHead>Tipo de Serviço</TableHead>
             <TableHead>Empresa</TableHead>
-            <TableHead>Descrição</TableHead>
+            <TableHead>Telefone</TableHead>
             <TableHead>Entrada</TableHead>
             <TableHead>Saída</TableHead>
             <TableHead>Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {providers.map((provider) => (
-            <TableRow key={provider.id}>
-              <TableCell>{provider.fullName}</TableCell>
-              <TableCell>{provider.cpf}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Wrench className="h-4 w-4" />
-                  {provider.serviceType}
-                </div>
+          {prestadores.length === 0 && !isLoading ? (
+            <TableRow>
+              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                Nenhum prestador encontrado
               </TableCell>
-              <TableCell>{provider.company}</TableCell>
-              <TableCell className="max-w-xs truncate" title={provider.serviceDescription}>
-                {provider.serviceDescription || '-'}
-              </TableCell>
-              <TableCell>{provider.entryTime}</TableCell>
-              <TableCell>{provider.exitTime || '-'}</TableCell>
-              <TableCell>
-                <div className="flex items-center space-x-2">
-                  {!provider.exitTime && (
+            </TableRow>
+          ) : (
+            prestadores.map((prestador) => (
+              <TableRow key={prestador.id}>
+                <TableCell>{prestador.name}</TableCell>
+                <TableCell>{prestador.cpf}</TableCell>
+                <TableCell>{prestador.cnpj}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Wrench className="h-4 w-4" />
+                    {prestador.service}
+                  </div>
+                </TableCell>
+                <TableCell>{prestador.company}</TableCell>
+                <TableCell>{prestador.phone}</TableCell>
+                <TableCell>{prestador.entryTime || '-'}</TableCell>
+                <TableCell>{prestador.exitTime || '-'}</TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    {!prestador.exitTime && (
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="text-green-500 hover:text-green-700 hover:bg-green-100"
+                        onClick={() => handleRegisterExit(prestador.id)}
+                        disabled={isLoading}
+                      >
+                        <Check size={16} />
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       size="icon" 
-                      className="text-green-500"
-                      onClick={() => handleRegisterExit(provider.id)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                      onClick={() => handleDeletePrestador(prestador.id)}
+                      disabled={isLoading}
                     >
-                      <Check size={16} />
+                      <Trash2 size={16} />
                     </Button>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="text-red-500"
-                    onClick={() => handleDeleteProvider(provider.id)}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>

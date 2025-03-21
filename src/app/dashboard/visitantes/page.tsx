@@ -1,264 +1,343 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import axios from 'axios'
 import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from '@/components/ui/table'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
+} from '@/components/ui/dialog'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog'
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select'
-import { Visitor, VisitorFilter } from '@/types/visitor'
-import { 
-  Trash2,
-  Check
-} from 'lucide-react'
+import { Trash2, Check, Loader2, PencilIcon } from 'lucide-react'
+import { ButtonGlitchBrightness } from '@/components/ui/ButtonGlitch'
+// Removed unused import: import { iVisitor } from '@/models/Visitors'
 
-// Funções mock com persistência usando localStorage
-export const getMockVisitors = (filter?: VisitorFilter): Visitor[] => {
-  // Tenta recuperar visitantes do localStorage ou usa os dados iniciais
-  let visitors: Visitor[] = [];
-  
-  try {
-    const savedVisitors = localStorage.getItem('visitors');
-    if (savedVisitors) {
-      visitors = JSON.parse(savedVisitors);
-    } else {
-      // Dados iniciais
-      visitors = [
-        {
-          id: '1',
-          fullName: 'Carlos Eduardo Vicente Ryan Pinto',
-          cpf: '92549170369',
-          sector: 'TI',
-          entryTime: '21/03/2025 09:29:34',
-          exitTime: undefined
-        },
-        {
-          id: '2',
-          fullName: 'Filipe Danilo José Novaes',
-          cpf: '57514780378',
-          sector: 'RH',
-          entryTime: '08/04/2022 09:05',
-          exitTime: '08/04/2022 09:05'
-        }
-      ];
-      // Salva os dados iniciais no localStorage
-      localStorage.setItem('visitors', JSON.stringify(visitors));
-    }
-  } catch (error) {
-    console.error("Erro ao carregar visitantes do localStorage:", error);
-    // Usa os dados padrão em caso de erro
-    visitors = [
-      {
-        id: '1',
-        fullName: 'Carlos Eduardo Vicente Ryan Pinto',
-        cpf: '92549170369',
-        sector: 'TI',
-        entryTime: '21/03/2025 09:29:34',
-        exitTime: undefined
-      },
-      {
-        id: '2',
-        fullName: 'Filipe Danilo José Novaes',
-        cpf: '57514780378',
-        sector: 'RH',
-        entryTime: '08/04/2022 09:05',
-        exitTime: '08/04/2022 09:05'
-      }
-    ];
-  }
-
-  // Aplicar filtros
-  return visitors.filter(visitor => {
-    if (filter?.fullName && !visitor.fullName.toLowerCase().includes(filter.fullName.toLowerCase())) return false
-    if (filter?.cpf && visitor.cpf !== filter.cpf) return false
-    if (filter?.sector && visitor.sector !== filter.sector) return false
-    return true
-  })
+// Just extend the MongoDB model for UI purposes
+interface UiVisitor {
+  id: string;
+  name: string;
+  rg: string;
+  cpf: string;
+  phone: string;
+  email: string;
+  address: string;
+  entryTime?: string;
+  exitTime?: string;
+  logs?: { entryTime: string; leaveTime?: string }[];
 }
 
-// Adicionar a função que estava faltando
-export const addVisitor = async (visitor: Partial<Visitor>): Promise<Visitor> => {
-  // Cria novo visitante
-  const newVisitor = {
-    id: Math.random().toString(36).substr(2, 9),
-    fullName: visitor.fullName || '',
-    cpf: visitor.cpf || '',
-    sector: visitor.sector || '',
-    entryTime: new Date().toLocaleString('pt-BR'),
-    exitTime: undefined
-  };
-  
-  try {
-    // Recupera lista atual
-    const visitors = getMockVisitors();
-    // Adiciona novo visitante
-    const updatedVisitors = [newVisitor, ...visitors];
-    // Salva no localStorage
-    localStorage.setItem('visitors', JSON.stringify(updatedVisitors));
-  } catch (error) {
-    console.error("Erro ao salvar novo visitante:", error);
-  }
-  
-  return newVisitor;
-}
-
-export const registerExit = async (visitorId: string): Promise<Visitor | null> => {
-  try {
-    // Recupera visitantes do localStorage
-    const visitors = getMockVisitors();
-    const currentVisitor = visitors.find(v => v.id === visitorId);
-    
-    if (!currentVisitor) return null;
-    
-    // Atualiza o horário de saída
-    const exitTime = new Date().toLocaleString('pt-BR');
-    const updatedVisitor = {
-      ...currentVisitor,
-      exitTime: exitTime
-    };
-    
-    // Atualiza a lista de visitantes
-    const updatedVisitors = visitors.map(v => 
-      v.id === visitorId ? updatedVisitor : v
-    );
-    
-    // Salva no localStorage
-    localStorage.setItem('visitors', JSON.stringify(updatedVisitors));
-    
-    return updatedVisitor;
-  } catch (error) {
-    console.error("Erro ao registrar saída:", error);
-    return null;
-  }
-}
-
-export const deleteVisitor = async (visitorId: string): Promise<boolean> => {
-  try {
-    // Recupera visitantes do localStorage
-    const visitors = getMockVisitors();
-    
-    // Remove o visitante da lista
-    const updatedVisitors = visitors.filter(v => v.id !== visitorId);
-    
-    // Salva no localStorage
-    localStorage.setItem('visitors', JSON.stringify(updatedVisitors));
-    
-    return true;
-  } catch (error) {
-    console.error("Erro ao deletar visitante:", error);
-    return false;
-  }
+type VisitorInput = {
+  name: string;
+  rg: string;
+  cpf: string;
+  phone: string;
+  email: string;
+  address: string;
 }
 
 export default function VisitorsPage() {
-  // Inicializa o estado com visitantes do localStorage
-  const [visitors, setVisitors] = useState(() => getMockVisitors())
-  const [newVisitor, setNewVisitor] = useState<Partial<Visitor>>({})
-  const [filter, setFilter] = useState<VisitorFilter>({})
+  const [visitors, setVisitors] = useState<UiVisitor[]>([])
+  const [newVisitor, setNewVisitor] = useState<VisitorInput>({
+    name: '',
+    rg: '',
+    cpf: '',
+    phone: '',
+    email: '',
+    address: '',
+  })
+  const [editingVisitor, setEditingVisitor] = useState<UiVisitor | null>(null)
+  const [filter, setFilter] = useState({ name: '', cpf: '', address: '' })
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [statusMessage, setStatusMessage] = useState({ text: '', isError: false })
 
-  const handleAddVisitor = async () => {
-    if (Object.keys(newVisitor).length > 0) {
-      const visitorToAdd = {
-        fullName: newVisitor.fullName || '',
-        cpf: newVisitor.cpf || '',
-        sector: newVisitor.sector || ''
-      }
-
-      const addedVisitor = await addVisitor(visitorToAdd)
-      setVisitors([addedVisitor, ...visitors])
-      setNewVisitor({})
+  // Convert MongoDB visitor to UI format
+  const convertVisitorData = useCallback((visitor: UiVisitor): UiVisitor => {
+    if (!visitor) return {
+      id: '',
+      name: '',
+      rg: '',
+      cpf: '',
+      phone: '',
+      email: '',
+      address: '',
+    };
+    
+    return {
+      id: visitor.id || '',
+      name: visitor.name || '',
+      rg: visitor.rg || '',
+      cpf: visitor.cpf || '',
+      phone: visitor.phone || '',
+      email: visitor.email || '',
+      address: visitor.address || '',
+      entryTime: visitor.logs && visitor.logs.length > 0
+        ? new Date(visitor.logs[visitor.logs.length - 1].entryTime).toLocaleString('pt-BR')
+        : undefined,
+      exitTime: visitor.logs && visitor.logs.length > 0 && visitor.logs[visitor.logs.length - 1].leaveTime
+        ? new Date(visitor.logs[visitor.logs.length - 1].leaveTime as string).toLocaleString('pt-BR')
+        : undefined
     }
-  }
+  }, [])
 
-  const handleRegisterExit = async (visitorId: string) => {
+  // Fetch all visitors
+  const fetchVisitors = useCallback(async () => {
+    setIsLoading(true)
     try {
-      // Chama a função do serviço que agora persiste no localStorage
-      const updatedVisitor = await registerExit(visitorId)
-      
-      if (updatedVisitor) {
-        // Atualiza o estado para refletir as mudanças
-        setVisitors(getMockVisitors()) // Recarrega do localStorage para garantir dados atualizados
+      const response = await axios.get('/api/visitors')
+      if (Array.isArray(response.data)) {
+        const mappedVisitors = response.data.map(convertVisitorData)
+        setVisitors(mappedVisitors)
+      } else {
+        setVisitors([])
       }
     } catch (error) {
-      console.error("Erro ao registrar saída:", error)
+      console.error('Failed to fetch visitors:', error)
+      setStatusMessage({ text: 'Falha ao carregar visitantes', isError: true })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [convertVisitorData])
+
+  // Add new visitor
+  const handleAddVisitor = async () => {
+    // Validate required fields
+    if (!newVisitor.name || !newVisitor.cpf || !newVisitor.rg || !newVisitor.phone || !newVisitor.email || !newVisitor.address) {
+      setStatusMessage({ text: 'Preencha todos os campos obrigatórios', isError: true })
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await axios.post('/api/visitors', {
+        ...newVisitor,
+        logs: [{ entryTime: new Date() }]
+      })
+      
+      // Reset form and close dialog
+      setNewVisitor({
+        name: '',
+        rg: '',
+        cpf: '',
+        phone: '',
+        email: '',
+        address: '',
+      })
+      setIsAddDialogOpen(false)
+      
+      // Refresh visitors list
+      await fetchVisitors()
+      setStatusMessage({ text: 'Visitante adicionado com sucesso', isError: false })
+    } catch (error) {
+      console.error('Failed to add visitor:', error)
+      setStatusMessage({ text: 'Falha ao adicionar visitante', isError: true })
+    } finally {
+      setIsLoading(false)
     }
   }
 
+  // Update visitor
+  const handleUpdateVisitor = async () => {
+    if (!editingVisitor) return
+    
+    setIsLoading(true)
+    try {
+      await axios.put('/api/visitors', {
+        id: editingVisitor.id,
+        update: {
+          name: editingVisitor.name,
+          rg: editingVisitor.rg,
+          cpf: editingVisitor.cpf,
+          phone: editingVisitor.phone,
+          email: editingVisitor.email,
+          address: editingVisitor.address
+        }
+      })
+      
+      setIsEditDialogOpen(false)
+      setEditingVisitor(null)
+      await fetchVisitors()
+      setStatusMessage({ text: 'Visitante atualizado com sucesso', isError: false })
+    } catch (error) {
+      console.error('Failed to update visitor:', error)
+      setStatusMessage({ text: 'Falha ao atualizar visitante', isError: true })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Register visitor exit
+  const handleRegisterExit = async (visitorId: string) => {
+    setIsLoading(true)
+    try {
+      await axios.put('/api/visitors', {
+        id: visitorId,
+        action: 'saida'
+      })
+      
+      await fetchVisitors()
+      setStatusMessage({ text: 'Saída registrada com sucesso', isError: false })
+    } catch (error) {
+      console.error('Failed to register exit:', error)
+      setStatusMessage({ text: 'Falha ao registrar saída', isError: true })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Delete visitor
   const handleDeleteVisitor = async (visitorId: string) => {
-    const deleted = await deleteVisitor(visitorId)
-    if (deleted) {
-      // Recarrega a lista atualizada do localStorage
-      setVisitors(getMockVisitors())
+    if (!confirm('Tem certeza que deseja excluir este visitante?')) return
+    
+    setIsLoading(true)
+    try {
+      await axios.delete('/api/visitors', {
+        data: { id: visitorId }
+      })
+      
+      await fetchVisitors()
+      setStatusMessage({ text: 'Visitante excluído com sucesso', isError: false })
+    } catch (error) {
+      console.error('Failed to delete visitor:', error)
+      setStatusMessage({ text: 'Falha ao excluir visitante', isError: true })
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleFilter = () => {
-    const filteredVisitors = getMockVisitors(filter)
-    setVisitors(filteredVisitors)
+  // Filter visitors
+  const handleFilter = async () => {
+    setIsLoading(true)
+    try {
+      const response = await axios.get('/api/visitors')
+      
+      if (!Array.isArray(response.data)) {
+        setVisitors([])
+        return
+      }
+      
+      let filteredVisitors = response.data.map(convertVisitorData)
+      
+      if (filter.name) {
+        filteredVisitors = filteredVisitors.filter((v) => 
+          v.name && v.name.toLowerCase().includes(filter.name.toLowerCase())
+        )
+      }
+      
+      if (filter.cpf) {
+        filteredVisitors = filteredVisitors.filter((v) => 
+          v.cpf && v.cpf.includes(filter.cpf)
+        )
+      }
+      
+      if (filter.address) {
+        filteredVisitors = filteredVisitors.filter((v) => 
+          v.address && v.address.toLowerCase().includes(filter.address.toLowerCase())
+        )
+      }
+      
+      setVisitors(filteredVisitors)
+    } catch (error) {
+      console.error('Failed to filter visitors:', error)
+      setStatusMessage({ text: 'Falha ao filtrar visitantes', isError: true })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Set up editing visitor
+  const startEditing = (visitor: UiVisitor) => {
+    setEditingVisitor(visitor)
+    setIsEditDialogOpen(true)
   }
   
-  // Adiciona um efeito para atualizar os visitantes quando a página é carregada
+  // Load visitors on page load
   useEffect(() => {
-    // Atualiza a lista de visitantes do localStorage
-    setVisitors(getMockVisitors())
-  }, [])
+    fetchVisitors()
+  }, [fetchVisitors])
 
   return (
     <div className="space-y-6">
-      {/* Aqui deveria ter o código de adição e filtro */}
+      {/* Status Message */}
+      {statusMessage.text && (
+        <div className={`p-4 rounded-md ${statusMessage.isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+          {statusMessage.text}
+          <button 
+            className="ml-4 text-sm underline" 
+            onClick={() => setStatusMessage({ text: '', isError: false })}>
+            Fechar
+          </button>
+        </div>
+      )}
+      
+      {/* Header with Add Button */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Visitantes</h1>
         
-        <Dialog>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Adicionar Visitante</Button>
+            <ButtonGlitchBrightness 
+              text="Adicionar Visitante" 
+              className="bg-black hover:bg-gray-600 dark:bg-blue-500/80 transition-all ease-in-out"
+            />
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Adicionar Novo Visitante</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 flex flex-col items-center justify-center">
               <div className="space-y-2">
-                <label htmlFor="name">Nome Completo</label>
+                <label htmlFor="name">Nome Completo*</label>
                 <Input 
                   id="name" 
-                  value={newVisitor.fullName || ''} 
-                  onChange={(e) => setNewVisitor({...newVisitor, fullName: e.target.value})}
+                  value={newVisitor.name} 
+                  onChange={(e) => setNewVisitor({...newVisitor, name: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="cpf">CPF</label>
+                <label htmlFor="rg">RG*</label>
+                <Input 
+                  id="rg" 
+                  value={newVisitor.rg} 
+                  onChange={(e) => setNewVisitor({...newVisitor, rg: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="cpf">CPF*</label>
                 <Input 
                   id="cpf" 
-                  value={newVisitor.cpf || ''} 
+                  value={newVisitor.cpf} 
                   onChange={(e) => setNewVisitor({...newVisitor, cpf: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="sector">Setor</label>
+                <label htmlFor="phone">Telefone*</label>
+                <Input 
+                  id="phone" 
+                  value={newVisitor.phone} 
+                  onChange={(e) => setNewVisitor({...newVisitor, phone: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="email">Email*</label>
+                <Input 
+                  id="email" 
+                  value={newVisitor.email} 
+                  onChange={(e) => setNewVisitor({...newVisitor, email: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="address">Setor*</label>
                 <Select 
-                  value={newVisitor.sector} 
-                  onValueChange={(value) => setNewVisitor({...newVisitor, sector: value})}
+                  value={newVisitor.address} 
+                  onValueChange={(value) => setNewVisitor({...newVisitor, address: value})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um setor" />
@@ -271,7 +350,12 @@ export default function VisitorsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleAddVisitor}>Adicionar</Button>
+              <ButtonGlitchBrightness 
+                text={isLoading ? "Adicionando..." : "Adicionar"}
+                onClick={handleAddVisitor}
+                disabled={isLoading}
+                className="w-fit text-center"
+              />
             </div>
           </DialogContent>
         </Dialog>
@@ -290,17 +374,17 @@ export default function VisitorsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <Input 
               placeholder="Nome" 
-              value={filter.fullName || ''} 
-              onChange={(e) => setFilter({...filter, fullName: e.target.value})}
+              value={filter.name} 
+              onChange={(e) => setFilter({...filter, name: e.target.value})}
             />
             <Input 
               placeholder="CPF" 
-              value={filter.cpf || ''} 
+              value={filter.cpf} 
               onChange={(e) => setFilter({...filter, cpf: e.target.value})}
             />
             <Select 
-              value={filter.sector} 
-              onValueChange={(value) => setFilter({...filter, sector: value})}
+              value={filter.address} 
+              onValueChange={(value) => setFilter({...filter, address: value})}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os setores" />
@@ -312,10 +396,22 @@ export default function VisitorsPage() {
                 <SelectItem value="Administrativo">Administrativo</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={handleFilter}>Filtrar</Button>
+            <ButtonGlitchBrightness 
+              text={isLoading ? "Filtrando..." : "Filtrar"}
+              onClick={handleFilter}
+              disabled={isLoading}
+              className="w-fit"
+            />
           </div>
         )}
       </div>
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex justify-center items-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
 
       {/* Tabela de Visitantes */}
       <Table>
@@ -323,46 +419,147 @@ export default function VisitorsPage() {
           <TableRow>
             <TableHead>Nome</TableHead>
             <TableHead>CPF</TableHead>
+            <TableHead>RG</TableHead>
+            <TableHead>Telefone</TableHead>
+            <TableHead>Email</TableHead>
             <TableHead>Setor</TableHead>
-            <TableHead>Horário de Entrada</TableHead>
-            <TableHead>Horário de Saída</TableHead>
+            <TableHead>Entrada</TableHead>
+            <TableHead>Saída</TableHead>
             <TableHead>Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {visitors.map((visitor) => (
-            <TableRow key={visitor.id}>
-              <TableCell>{visitor.fullName}</TableCell>
-              <TableCell>{visitor.cpf}</TableCell>
-              <TableCell>{visitor.sector || '-'}</TableCell>
-              <TableCell>{visitor.entryTime}</TableCell>
-              <TableCell>{visitor.exitTime || '-'}</TableCell>
-              <TableCell>
-                <div className="flex items-center space-x-2">
-                  {!visitor.exitTime && (
+          {visitors.length === 0 && !isLoading ? (
+            <TableRow>
+              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                Nenhum visitante encontrado
+              </TableCell>
+            </TableRow>
+          ) : (
+            visitors.map((visitor) => (
+              <TableRow key={visitor.id}>
+                <TableCell className="font-medium">{visitor.name}</TableCell>
+                <TableCell>{visitor.cpf}</TableCell>
+                <TableCell>{visitor.rg}</TableCell>
+                <TableCell>{visitor.phone}</TableCell>
+                <TableCell>{visitor.email}</TableCell>
+                <TableCell>{visitor.address}</TableCell>
+                <TableCell>{visitor.entryTime || '-'}</TableCell>
+                <TableCell>{visitor.exitTime || '-'}</TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
                     <Button 
                       variant="outline" 
                       size="icon" 
-                      className="text-green-500"
-                      onClick={() => handleRegisterExit(visitor.id)}
+                      className="text-blue-500 hover:text-blue-700 hover:bg-blue-100"
+                      onClick={() => startEditing(visitor)}
+                      disabled={isLoading}
                     >
-                      <Check size={16} />
+                      <PencilIcon size={16} />
                     </Button>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="text-red-500"
-                    onClick={() => handleDeleteVisitor(visitor.id)}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                    {!visitor.exitTime && (
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="text-green-500 hover:text-green-700 hover:bg-green-100"
+                        onClick={() => handleRegisterExit(visitor.id)}
+                        disabled={isLoading}
+                      >
+                        <Check size={16} />
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                      onClick={() => handleDeleteVisitor(visitor.id)}
+                      disabled={isLoading}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Visitante</DialogTitle>
+          </DialogHeader>
+          {editingVisitor && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label htmlFor="edit-name">Nome Completo*</label>
+                <Input 
+                  id="edit-name" 
+                  value={editingVisitor.name} 
+                  onChange={(e) => setEditingVisitor({...editingVisitor, name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="edit-rg">RG*</label>
+                <Input 
+                  id="edit-rg" 
+                  value={editingVisitor.rg} 
+                  onChange={(e) => setEditingVisitor({...editingVisitor, rg: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="edit-cpf">CPF*</label>
+                <Input 
+                  id="edit-cpf" 
+                  value={editingVisitor.cpf} 
+                  onChange={(e) => setEditingVisitor({...editingVisitor, cpf: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="edit-phone">Telefone*</label>
+                <Input 
+                  id="edit-phone" 
+                  value={editingVisitor.phone} 
+                  onChange={(e) => setEditingVisitor({...editingVisitor, phone: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="edit-email">Email*</label>
+                <Input 
+                  id="edit-email" 
+                  value={editingVisitor.email} 
+                  onChange={(e) => setEditingVisitor({...editingVisitor, email: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="edit-address">Setor*</label>
+                <Select 
+                  value={editingVisitor.address} 
+                  onValueChange={(value) => setEditingVisitor({...editingVisitor, address: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um setor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TI">TI</SelectItem>
+                    <SelectItem value="RH">RH</SelectItem>
+                    <SelectItem value="Financeiro">Financeiro</SelectItem>
+                    <SelectItem value="Administrativo">Administrativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <ButtonGlitchBrightness 
+                text={isLoading ? "Salvando..." : "Salvar Alterações"}
+                onClick={handleUpdateVisitor}
+                disabled={isLoading}
+                className="w-full text-center"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
