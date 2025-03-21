@@ -1,10 +1,16 @@
-
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 
-// Função mock de validação - no futuro, será substituída por verificação no banco
-const validateUser = async (email: string, password: string) => {
+// Define types for our user
+interface User {
+  id: string
+  email: string
+  name: string
+  role: string
+}
 
+// Função mock de validação - no futuro, será substituída por verificação no banco
+const validateUser = async (email: string, password: string): Promise<User | null> => {
   // Usuários mock - no futuro, virão do banco de dados
   const users = [
     { 
@@ -23,7 +29,7 @@ const validateUser = async (email: string, password: string) => {
     }
   ]
 
-    // Busca usuário por e-mail e senha
+  // Busca usuário por e-mail e senha
   const user = users.find(u => u.email === email && u.password === password)
   return user ? { 
     id: user.id, 
@@ -33,6 +39,13 @@ const validateUser = async (email: string, password: string) => {
   } : null
 }
 
+// Estender o tipo JWT para incluir id e role
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id?: string
+    role?: string
+  }
+}
 
 // Estender o tipo Session para incluir id e role
 declare module 'next-auth' {
@@ -44,6 +57,13 @@ declare module 'next-auth' {
       email?: string | null
       image?: string | null
     }
+  }
+  
+  interface User {
+    id: string
+    role: string
+    name?: string | null
+    email?: string | null
   }
 }
 
@@ -75,7 +95,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = (user as any).role
+        token.role = user.role // Fixed: No need for type assertion
       }
       return token
     },

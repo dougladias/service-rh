@@ -5,6 +5,8 @@ interface IEntry {
   leaveTime?: Date;
   faltou?: boolean;
   date?: Date;
+  createdAt?: Date;
+  absent?: boolean;
 }
 
 export interface IWorker extends Document {

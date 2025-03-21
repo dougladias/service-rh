@@ -20,7 +20,7 @@ export function ButtonGlitchBrightness({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`group relative inline-flex items-center gap-1 overflow-hidden rounded-xl bg-black/80 px-4 py-2 text-sm font-medium text-white duration-300 hover:bg-black dark:bg-white/80 dark:text-black dark:hover:bg-white ${className} ${
+      className={`group relative inline-flex items-center gap-1 overflow-hidden rounded-lg bg-black/80 px-4 py-2 text-sm font-medium text-white duration-300 hover:bg-black dark:bg-white/80 dark:text-black dark:hover:bg-white ${className} ${
         disabled ? "opacity-50 cursor-not-allowed" : ""
       }`}
     >
