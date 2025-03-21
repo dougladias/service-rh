@@ -45,6 +45,11 @@ const menuItems = [
       },
       { 
         icon: FileText, 
+        label: 'Benefícios', 
+        href: '/dashboard/folha-pagamento/beneficios' 
+      },
+      { 
+        icon: FileText, 
         label: 'Holerites', 
         href: '/dashboard/folha-pagamento/holerites' 
       },
@@ -52,6 +57,11 @@ const menuItems = [
         icon: FileText, 
         label: 'Calculo', 
         href: '/dashboard/folha-pagamento/calculo' 
+      },
+      { 
+        icon: FileText, 
+        label: 'Relatorios', 
+        href: '/dashboard/folha-pagamento/relatorios' 
       }    
     ] 
   },
