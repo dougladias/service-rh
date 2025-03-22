@@ -6,14 +6,14 @@ import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
   Settings,
   Clock,
   ChevronDown,
-  ChevronRight 
+  ChevronRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -40,91 +40,97 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { 
-    icon: LayoutDashboard, 
-    label: 'Dashboard', 
-    href: '/dashboard' 
+  {
+    icon: LayoutDashboard,
+    label: 'Dashboard',
+    href: '/dashboard'
     // Não definimos roles = acessível a todos
   },
-  { 
-    icon: Users, 
-    label: 'Funcionários', 
+  {
+    icon: Users,
+    label: 'Funcionários',
     href: '/dashboard/funcionarios',
     allowedRoles: [UserRole.CEO, UserRole.ADMIN],
   },
-  { 
-    icon: FileText, 
-    label: 'Documentos', 
+  {
+    icon: FileText,
+    label: 'Documentos',
     href: '/dashboard/documentos',
     allowedRoles: [UserRole.CEO, UserRole.ADMIN],
     subItems: [
-      { 
-        icon: FileText, 
-        label: 'File Documentos', 
+      {
+        icon: FileText,
+        label: 'File Documentos',
         href: '/dashboard/documentos',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
-      { 
-        icon: FileText, 
-        label: 'Modelos', 
+      {
+        icon: FileText,
+        label: 'Modelos',
         href: '/dashboard/documentos/modelos',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
-      }     
-    ] 
+      }
+    ]
   },
-  { 
-    icon: FileText, 
-    label: 'Folha Salarial', 
+  {
+    icon: FileText,
+    label: 'Folha Salarial',
     href: '/dashboard/folha-pagamento',
     allowedRoles: [UserRole.CEO, UserRole.ADMIN],
     subItems: [
-      { 
-        icon: FileText, 
-        label: 'Pagamentos', 
+      {
+        icon: FileText,
+        label: 'Pagamentos',
         href: '/dashboard/folha-pagamento',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
-      { 
-        icon: FileText, 
-        label: 'Benefícios', 
+      {
+        icon: FileText,
+        label: 'Benefícios',
         href: '/dashboard/folha-pagamento/beneficios',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
-      { 
-        icon: FileText, 
-        label: 'Holerites', 
+      {
+        icon: FileText,
+        label: 'Holerites',
         href: '/dashboard/folha-pagamento/holerites',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
-      { 
-        icon: FileText, 
-        label: 'Calculo', 
+      {
+        icon: FileText,
+        label: 'Calculo',
         href: '/dashboard/folha-pagamento/calculo',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
-      { 
-        icon: FileText, 
-        label: 'Relatorios', 
+      {
+        icon: FileText,
+        label: 'Relatorios',
         href: '/dashboard/folha-pagamento/relatorios',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
-      }    
-    ] 
+      }
+    ]
   },
-  { 
-    icon: FileText, 
-    label: 'Relatórios', 
+  {
+    icon: FileText,
+    label: 'Lista de Tarefas',
+    href: '/dashboard/lista-tarefas',
+    allowedRoles: [UserRole.ASSISTENTE],
+  },
+  {
+    icon: FileText,
+    label: 'Relatórios',
     href: '/dashboard/relatorios',
     allowedRoles: [UserRole.CEO, UserRole.ADMIN]
   },
-  { 
-    icon: Clock, 
-    label: 'Controle', 
+  {
+    icon: Clock,
+    label: 'Controle',
     href: '/dashboard/controle-ponto',
     allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE],
     subItems: [
-      { 
-        icon: Clock, 
-        label: 'Controle de Ponto', 
+      {
+        icon: Clock,
+        label: 'Controle de Ponto',
         href: '/dashboard/controle-ponto',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE]
       },
@@ -142,11 +148,11 @@ const menuItems: MenuItem[] = [
       }
     ]
   },
-  { 
-    icon: Settings, 
-    label: 'Configurações', 
+  {
+    icon: Settings,
+    label: 'Configurações',
     href: '/dashboard/configuracoes',
-    allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE] 
+    allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE]
   }
 ]
 
@@ -155,18 +161,18 @@ export default function Sidebar() {
   const [isMounted, setIsMounted] = useState(false)
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
   const { data: session } = useSession()
-  
+
   // Pega a role do usuário da sessão
   const userRole = session?.user?.role as UserRole | undefined
-  
+
   // Função para verificar se o usuário tem acesso a um item do menu
   const hasAccess = useCallback((item: MenuItem) => {
     // Se não há roles definidas, o item é sempre acessível
     if (!item.allowedRoles || item.allowedRoles.length === 0) return true;
-    
+
     // Se o usuário não tem role, não tem acesso
     if (!userRole) return false;
-    
+
     // Converte a role para enum, se necessário
     let role: UserRole;
     if (userRole === 'CEO') {
@@ -179,7 +185,7 @@ export default function Sidebar() {
       // Role desconhecida
       return false;
     }
-    
+
     // Verifica se a role do usuário está nas roles permitidas
     return item.allowedRoles.includes(role);
   }, [userRole]);
@@ -187,16 +193,16 @@ export default function Sidebar() {
   // Função para verificar se um item pai deve estar ativo com base na rota atual
   const isActiveParent = useCallback((currentPath: string | null, item: MenuItem) => {
     if (!currentPath) return false
-    
+
     if (currentPath === item.href) return true
-    
+
     if (item.subItems) {
-      return item.subItems.some((subItem) => 
-        currentPath === subItem.href || 
+      return item.subItems.some((subItem) =>
+        currentPath === subItem.href ||
         currentPath.startsWith(`${subItem.href}/`)
       )
     }
-    
+
     return false
   }, [])
 
@@ -214,7 +220,7 @@ export default function Sidebar() {
   // Renderiza o Lottie apenas após o componente ser montado no cliente
   useEffect(() => {
     setIsMounted(true)
-    
+
     // Expande automaticamente o menu que contém a rota atual
     menuItems.forEach(item => {
       if (item.subItems && isActiveParent(pathname, item)) {
@@ -233,8 +239,8 @@ export default function Sidebar() {
   // Determina o título do tipo de usuário para exibir
   const userTypeTitle = () => {
     if (!userRole) return "Usuário";
-    
-    switch(userRole) {
+
+    switch (userRole) {
       case "CEO":
         return "CEO";
       case "administrador":
@@ -251,8 +257,8 @@ export default function Sidebar() {
       <div className="p-4">
         <div className="flex justify-center">
           {isMounted && (
-            <Lottie 
-              animationData={LogoGloboo} 
+            <Lottie
+              animationData={LogoGloboo}
               style={{ width: 120, height: 120 }}
               loop={true}
               autoplay={true}
@@ -266,19 +272,19 @@ export default function Sidebar() {
           {filteredMenuItems.map((item) => {
             // Filtra subitens com base nas permissões
             const filteredSubItems = getFilteredSubItems(item);
-            
+
             // Se não há subitens visíveis, não mostrar o submenu
             const hasVisibleSubItems = filteredSubItems.length > 0;
-            
+
             return (
               <div key={item.href}>
                 {item.subItems && hasVisibleSubItems ? (
                   // Item com submenu
-                  <div 
+                  <div
                     className={cn(
                       "flex items-center p-3 rounded-lg transition-colors duration-200 cursor-pointer",
                       isActiveParent(pathname, item)
-                        ? "bg-black text-cyan-300" 
+                        ? "bg-black text-cyan-300"
                         : "hover:bg-gray-400 text-gray-800 dark:text-white"
                     )}
                     onClick={() => toggleSubmenu(item.label)}
@@ -295,8 +301,8 @@ export default function Sidebar() {
                     href={item.href}
                     className={cn(
                       "flex items-center p-3 rounded-lg transition-colors duration-200",
-                      pathname === item.href 
-                        ? "bg-black text-cyan-300" 
+                      pathname === item.href
+                        ? "bg-black text-cyan-300"
                         : "hover:bg-gray-400 text-gray-800 dark:text-white"
                     )}
                   >
@@ -306,7 +312,7 @@ export default function Sidebar() {
                     </div>
                   </Link>
                 )}
-                
+
                 {item.subItems && hasVisibleSubItems && expandedMenu === item.label && (
                   <div className="pl-6 mt-1 space-y-1">
                     {filteredSubItems.map((subItem) => (
@@ -315,8 +321,8 @@ export default function Sidebar() {
                         href={subItem.href}
                         className={cn(
                           "flex items-center p-2 rounded-lg text-sm transition-colors duration-200",
-                          pathname === subItem.href 
-                            ? "bg-black text-cyan-300" 
+                          pathname === subItem.href
+                            ? "bg-black text-cyan-300"
                             : "hover:bg-gray-400 text-gray-800 dark:text-gray-300"
                         )}
                       >
