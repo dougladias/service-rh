@@ -6,7 +6,34 @@ import {
   FileText, 
   TrendingUp 
 } from 'lucide-react'
-import { DashboardCard, RecentActivity, DashboardStats } from '@/types/dashboard'
+
+// Dashboard card interface
+interface DashboardCard {
+  icon: React.ElementType;
+  title: string;
+  value: string;
+  percentage: number;
+  positive: boolean;
+  link: string;
+  animationKey: string; // The key for animation mapping
+}
+
+// Recent activity interface
+interface RecentActivity {
+  id: string;
+  icon: React.ReactNode;
+  title: string;
+  timestamp: string;
+  type: 'success' | 'info' | 'warning' | 'error';
+}
+
+// Dashboard stats interface
+interface DashboardStats {
+  totalEmployees: number;
+  monthlyPayroll: number;
+  generatedPayslips: number;
+  averageCost: number;
+}
 
 // Função que retorna os cards de estatísticas do dashboard
 export const getDashboardCards = (): DashboardCard[] => [
@@ -16,7 +43,8 @@ export const getDashboardCards = (): DashboardCard[] => [
     value: '32',
     percentage: 1.5,
     positive: true,
-    link: '/dashboard/funcionarios'
+    link: '/dashboard/funcionarios',
+    animationKey: 'staff'  // Maps to Staff.json
   },
   {
     icon: DollarSign,
@@ -24,7 +52,8 @@ export const getDashboardCards = (): DashboardCard[] => [
     value: 'R$ 128.250,00',
     percentage: 2.3,
     positive: true,
-    link: '/dashboard/folha-pagamento'
+    link: '/dashboard/folha-pagamento',
+    animationKey: 'dollar-symbol'  // Maps to dollar-symbol.json
   },
   {
     icon: FileText,
@@ -32,7 +61,8 @@ export const getDashboardCards = (): DashboardCard[] => [
     value: '32',
     percentage: 0,
     positive: true,
-    link: '/dashboard/relatorios'
+    link: '/dashboard/relatorios',
+    animationKey: 'pdf'  // Maps to pdf.json
   },
   {
     icon: TrendingUp,
@@ -40,7 +70,8 @@ export const getDashboardCards = (): DashboardCard[] => [
     value: 'R$ 4.007,81',
     percentage: 1.2,
     positive: false,
-    link: '/dashboard/relatorios'
+    link: '/dashboard/relatorios',
+    animationKey: 'support'  // Maps to support.json
   }
 ]
 
