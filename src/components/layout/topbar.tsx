@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
+import { ThemeToggle } from './theme-toggle'
 
 export default function Topbar() {
     const router = useRouter()
@@ -25,8 +26,8 @@ export default function Topbar() {
     }
 
     return (
-        <header className="sticky top-0 z-50 bg-white border-b shadow-sm h-16 flex items-center justify-between px-6">
-            <div className="text-gray-700 text-[0.9rem] font-medium">
+        <header className="sticky top-0 z-50 bg-gray-300 dark:bg-gray-800 border-b shadow-sm h-16 flex items-center justify-between px-6">
+            <div className="text-gray-700 dark:text-gray-300 text-[0.9rem] font-medium">
                 Bem-vindo de volta! Hoje é <span className="text-cyan-500">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
                 
             </div>
@@ -35,7 +36,7 @@ export default function Topbar() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <div className="relative cursor-pointer">
-                    <Bell className="text-gray-600" size={20} />
+                    <Bell className="text-gray-600 dark:text-gray-300" size={20} />
                     <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
                         2
                     </span>
@@ -67,6 +68,9 @@ export default function Topbar() {
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
+        <div className="fixed -translate-x-[3rem] top-[0.85rem]">
+            <ThemeToggle />
+        </div>
     </div>
 
                 <DropdownMenu>

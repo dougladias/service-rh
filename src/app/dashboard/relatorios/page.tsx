@@ -40,11 +40,11 @@ export default function RelatoriosPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold">Relatórios</h1>
-          <p className="text-gray-600">Geração e visualização de relatórios</p>
+          <p className="dark:text-gray-300">Geração e visualização de relatórios</p>
         </div>
       </div>
 
-      <div className="bg-white border rounded-lg p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-gray-800 border rounded-lg p-6 shadow-sm space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block mb-2">Tipo de Relatório</label>
@@ -91,7 +91,7 @@ export default function RelatoriosPage() {
       </div>
 
       {/* Seção de Visualização de Relatório */}
-      <div className="bg-white border rounded-lg p-6 shadow-sm">
+      <div className="dark:bg-gray-800 bg-white border rounded-lg p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4">Visualização do Relatório</h3>
         {/* Tabela de exemplo - será substituída pela lógica real de relatórios */}
         <Table>

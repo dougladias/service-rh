@@ -16,8 +16,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-gray-600">Visão geral do sistema de RH</p>
+          <h1 className="text-2xl font-semibold dark:text-white">Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-300">Visão geral do sistema de RH</p>
         </div>
       </div>
 
@@ -27,10 +27,10 @@ export default function DashboardPage() {
           <Link 
             key={index} 
             href={card.link}
-            className="bg-white border rounded-lg p-4 shadow-sm flex flex-col hover:shadow-md transition-shadow duration-200 hover:border-cyan-300 group"
+            className="dark:bg-gray-800 bg-white border rounded-lg p-4 shadow-sm flex flex-col hover:shadow-md transition-shadow duration-200 hover:border-cyan-300 group"
           >
             <div className="flex justify-between items-center mb-4">
-              <div className="bg-cyan-50 rounded-md p-2 group-hover:bg-cyan-100 transition-colors duration-200">
+              <div className="bg-cyan-50 dark:bg-gray-800 border rounded-md p-2 group-hover:bg-cyan-100 transition-colors duration-200">
                 {React.createElement(card.icon as React.ElementType, { 
                   className: "text-cyan-500 group-hover:text-cyan-600 transition-colors", 
                   size: 30 
@@ -39,7 +39,7 @@ export default function DashboardPage() {
               <Badge 
                 variant={card.positive ? 'secondary' : 'destructive'}
                 className={`
-                  ${card.positive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}
+                  ${card.positive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600 dark:text-white'}
                   text-xs px-2 py-1 rounded-full
                 `}
               >
@@ -48,7 +48,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-gray-500 mb-2 text-sm font-medium">{card.title}</p>
-              <h2 className="text-2xl font-bold text-gray-800">{card.value}</h2>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-300">{card.value}</h2>
             </div>
           </Link>
         ))}
@@ -57,7 +57,7 @@ export default function DashboardPage() {
       <SimpleCharts />
 
       {/* Atividades Recentes */}
-      <div className="bg-white border rounded-lg p-4 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border rounded-lg p-4 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Atividades Recentes</h3>
           <Button variant="link" className="text-cyan-600 p-0 hover:text-cyan-800">

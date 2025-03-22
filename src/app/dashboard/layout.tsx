@@ -23,7 +23,7 @@ export default function DashboardLayout({
 
   if (status === 'loading') {
     return (
-      <div className="flex h-screen items-center justify-center bg-white">
+      <div className="flex h-screen items-center justify-center bg-white dark:bg-gray-800">
         <div className="flex flex-col items-center justify-center">
           <div className="relative">
             <motion.div
@@ -62,7 +62,7 @@ export default function DashboardLayout({
     <QueryClientProvider client={queryClient}>
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-gray-50 ml-64"> 
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800 ml-64"> 
           <Topbar />
           <div className="p-6 h-[calc(100vh-64px)] overflow-y-auto">
             {children}

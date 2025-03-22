@@ -116,7 +116,7 @@ const LogHistoryModal = ({
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+              className="dark:bg-gray-800 bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
@@ -134,7 +134,7 @@ const LogHistoryModal = ({
                 </button>
               </div>
 
-              <div className="flex items-center px-4 py-2 bg-gray-50">
+              <div className="flex items-center px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-xl">
                 <div className="text-sm text-gray-600 mr-6">
                   <span className="font-medium">Cargo:</span> {worker.role}
                 </div>
@@ -160,7 +160,7 @@ const LogHistoryModal = ({
                         key={dateKey}
                         className="border rounded-lg overflow-hidden"
                       >
-                        <div className="bg-gray-100 px-4 py-2 font-medium">
+                        <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 font-medium">
                           {new Date(dateKey).toLocaleDateString("pt-BR", {
                             weekday: "long",
                             year: "numeric",
@@ -177,7 +177,7 @@ const LogHistoryModal = ({
                                   <span className="font-medium">
                                     Dia não trabalhado
                                   </span>
-                                  <span className="text-gray-500 ml-2 text-sm">
+                                  <span className="text-gray-500 dark:text-gray-300 ml-2 text-sm">
                                     {formatDate(log.createdAt || log.entryTime)}
                                   </span>
                                 </div>
@@ -309,7 +309,7 @@ const WorkerRow = ({
   };
 
   return (
-    <tr className="border-b hover:bg-gray-50">
+    <tr className="border-b hover:bg-gray-300 dark:hover:bg-gray-900">
       <td
         className="py-3 px-4 cursor-pointer hover:text-cyan-600 transition-colors"
         onClick={() => onNameClick(worker)}
@@ -332,13 +332,13 @@ const WorkerRow = ({
             </div>
           ) : (
             <div className="flex flex-col">
-              <div className="flex items-center text-xs text-gray-600 mb-1">
+              <div className="flex items-center text-xs text-gray-600 dark:text-gray-300 mb-1">
                 <Clock size={12} className="mr-1" /> Entrada:{" "}
                 {lastLog.entryTime
                   ? formatDateTime(lastLog.entryTime)
                   : "Não registrada"}
               </div>
-              <div className="flex items-center text-xs text-gray-600">
+              <div className="flex items-center text-xs text-gray-600 dark:text-gray-300">
                 <Clock size={12} className="mr-1" /> Saída:{" "}
                 {lastLog.leaveTime
                   ? formatDateTime(lastLog.leaveTime)
@@ -347,7 +347,7 @@ const WorkerRow = ({
             </div>
           )
         ) : (
-          <span className="text-xs text-gray-500">Sem registros</span>
+          <span className="text-xs text-gray-500 dark:text-gray-300">Sem registros</span>
         )}
       </td>
       <td className="py-3 px-4">
@@ -492,8 +492,8 @@ const TimeTrackingPage: React.FC = () => {
     <div className="w-full mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <div className="flex flex-col">
-          <h2 className="text-2xl font-bold text-black">Controle de Ponto</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-black dark:text-white">Controle de Ponto</h2>
+          <p className="text-gray-600 dark:text-gray-400">
             Registro de entradas e saídas dos funcionários
           </p>
         </div>
@@ -511,7 +511,7 @@ const TimeTrackingPage: React.FC = () => {
           </div>
           <input
             type="text"
-            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block pl-10 p-2.5 transition-all duration-200 focus:w-64 w-48"
+            className="bg-white dark:bg-gray-800 border border-gray-300 text-gray-900 dark:text-gray-300 text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block pl-10 p-2.5 transition-all duration-200 focus:w-64 w-48"
             placeholder="Buscar funcionário..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -521,12 +521,12 @@ const TimeTrackingPage: React.FC = () => {
 
       <table className="w-full border-collapse">
         <thead>
-          <tr className="bg-gray-100 text-gray-700">
-            <th className="py-2 px-4 text-left">Nome</th>
-            <th className="py-2 px-4 text-left">Cargo</th>
-            <th className="py-2 px-4 text-left">Registro de Ponto</th>
-            <th className="py-2 px-4 text-left">Status</th>
-            <th className="py-2 px-4 text-left">Ações</th>
+          <tr className="bg-gray-100 dark:bg-gray-900 rounded text-gray-700">
+            <th className="py-2 px-4 text-left dark:text-gray-300">Nome</th>
+            <th className="py-2 px-4 text-left dark:text-gray-300">Cargo</th>
+            <th className="py-2 px-4 text-left dark:text-gray-300">Registro de Ponto</th>
+            <th className="py-2 px-4 text-left dark:text-gray-300">Status</th>
+            <th className="py-2 px-4 text-left dark:text-gray-300">Ações</th>
           </tr>
         </thead>
         <tbody>

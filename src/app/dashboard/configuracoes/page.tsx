@@ -49,7 +49,7 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Configurações Gerais */}
-      <div className="bg-white border rounded-lg p-6 shadow-sm space-y-6">
+      <div className="bg-white dark:bg-gray-800 border rounded-lg p-6 shadow-sm space-y-6">
         <h2 className="text-lg font-semibold">Configurações Gerais</h2>
         
         <div className="grid grid-cols-2 gap-6">
@@ -114,7 +114,7 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Configurações de Segurança */}
-      <div className="bg-white border rounded-lg p-6 shadow-sm space-y-6">
+      <div className="bg-white dark:bg-gray-800 border rounded-lg p-6 shadow-sm space-y-6">
         <h2 className="text-lg font-semibold">Configurações de Segurança</h2>
         
         <div className="grid grid-cols-2 gap-6">

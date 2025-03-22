@@ -104,15 +104,15 @@ export default function SimpleCharts() {
   // Only render chart when we have a valid width
   if (dimensions.width === 0) {
     return (
-      <div ref={containerRef} className="w-full bg-white p-4 rounded-lg shadow-sm min-h-[300px] flex items-center justify-center">
+      <div ref={containerRef} className="w-full bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm min-h-[300px] flex items-center justify-center">
         <div className="text-gray-400">Carregando gráfico...</div>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="w-full bg-white p-4 rounded-lg shadow-sm overflow-hidden">
-      <h3 className="text-lg font-semibold mb-4">Folha de Pagamento Mensal</h3>
+    <div ref={containerRef} className="w-full bg-white dark:bg-gray-500 p-4 rounded-lg shadow-sm overflow-hidden">
+      <h3 className="text-lg font-semibold mb-4 dark:text-black">Folha de Pagamento Mensal</h3>
       <BarChart
         xAxis={[{
           id: 'barCategories',

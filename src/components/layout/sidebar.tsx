@@ -162,7 +162,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 bt-black h-full w-64 bg-gray-800 border-r shadow-sm z-40">
+    <aside className="fixed left-0 bt-black h-full w-64 bg-gray-300 dark:bg-gray-800 border-r shadow-sm z-40">
       <div className="p-4">
         <div className="flex justify-center">
           {isMounted && (
@@ -174,7 +174,7 @@ export default function Sidebar() {
             />
           )}
         </div>
-        <h1 className="text-2xl font-bold mb-10 text-center text-cyan-300 mt-4">ADMINISTRADOR</h1>
+        <h1 className="text-1xl uppercase font-bold mb-10 text-center text-black dark:text-cyan-300 mt-4">Administrador</h1>
         <nav className="space-y-2">
           {menuItems.map((item) => (
             <div key={item.href}>
@@ -185,7 +185,7 @@ export default function Sidebar() {
                     "flex items-center p-3 rounded-lg transition-colors duration-200 cursor-pointer",
                     isActiveParent(pathname, item)
                       ? "bg-black text-cyan-300" 
-                      : "hover:bg-gray-700 text-gray-300"
+                      : "hover:bg-gray-400 text-gray-800 dark:text-white"
                   )}
                   onClick={() => toggleSubmenu(item.label)}
                 >
@@ -203,7 +203,7 @@ export default function Sidebar() {
                     "flex items-center p-3 rounded-lg transition-colors duration-200",
                     pathname === item.href 
                       ? "bg-black text-cyan-300" 
-                      : "hover:bg-gray-700 text-gray-300"
+                      : "hover:bg-gray-400 text-gray-800 dark:text-white"
                   )}
                 >
                   <item.icon className="mr-3" size={20} />
@@ -223,7 +223,7 @@ export default function Sidebar() {
                         "flex items-center p-2 rounded-lg text-sm transition-colors duration-200",
                         pathname === subItem.href 
                           ? "bg-black text-cyan-300" 
-                          : "hover:bg-gray-700 text-gray-300"
+                          : "hover:bg-gray-400 text-gray-800 dark:text-gray-300"
                       )}
                     >
                       <subItem.icon className="mr-2" size={16} />
