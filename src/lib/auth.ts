@@ -12,37 +12,37 @@ interface User {
 
 // Função mock de validação - no futuro, será substituída por verificação no banco
 const validateUser = async (email: string, password: string): Promise<User | null> => {
-  // Usuários mock - no futuro, virão do banco de dados
+  // Usuários usando variáveis de ambiente
   const users = [
     { 
       id: '1', 
-      email: 'ceo@globoo.io', 
-      password: 'ceo123', 
-      name: 'CEO',
+      email: process.env.CEO_EMAIL, 
+      password: process.env.CEO_PASSWORD, 
+      name: process.env.CEO_NAME,
       role: UserRole.CEO
     },
     { 
       id: '2', 
-      email: 'admin@globoo.io', 
-      password: 'admin123', 
-      name: 'Administrador',
+      email: process.env.ADMIN_EMAIL, 
+      password: process.env.ADMIN_PASSWORD, 
+      name: process.env.ADMIN_NAME,
       role: UserRole.ADMIN
     },
     { 
       id: '3', 
-      email: 'assistente@globo.io', 
-      password: 'assistente123', 
-      name: 'Assistente',
+      email: process.env.ASSISTENTE_EMAIL, 
+      password: process.env.ASSISTENTE_PASSWORD, 
+      name: process.env.ASSISTENTE_NAME,
       role: UserRole.ASSISTENTE
     }
   ]
-
+  
   // Busca usuário por e-mail e senha
   const user = users.find(u => u.email === email && u.password === password)
   return user ? { 
     id: user.id, 
-    email: user.email, 
-    name: user.name,
+    email: user.email || '', 
+    name: user.name || '',
     role: user.role
   } : null
 }

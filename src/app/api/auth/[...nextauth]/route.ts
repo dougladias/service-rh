@@ -46,27 +46,27 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials): Promise<CustomUser | null> {
-        // Usuários mock para diferentes roles
+        // Usuários usando variáveis de ambiente
         const users = [
           {
             id: "1",
-            email: "ceo@globoo.io",
-            password: "ceo123",
-            name: "CEO",
+            email: process.env.CEO_EMAIL,
+            password: process.env.CEO_PASSWORD,
+            name: process.env.CEO_NAME,
             role: "CEO"
           },
           {
             id: "2",
-            email: "admin@globoo.io",
-            password: "admin123",
-            name: "Administrador",
-            role: "administrador"
+            email: process.env.ADMIN_EMAIL,
+            password: process.env.ADMIN_PASSWORD,
+            name: process.env.ADMIN_NAME,
+            role: "administrador" 
           },
           {
             id: "3",
-            email: "assistente@globoo.io",
-            password: "assistente123",
-            name: "Assistente",
+            email: process.env.ASSISTENTE_EMAIL,
+            password: process.env.ASSISTENTE_PASSWORD,
+            name: process.env.ASSISTENTE_NAME,
             role: "assistente"
           }
         ];
@@ -79,16 +79,14 @@ const handler = NextAuth({
 
         // Se encontrou um usuário, retorna os dados (menos a senha)
         if (user) {
-          const { password, ...userWithoutPassword } = user; // eslint-disable-line @typescript-eslint/no-unused-vars
+          const { ...userWithoutPassword } = user;
           return userWithoutPassword as CustomUser;
         }
         
-        // Não encontrou usuário, retorna null
         return null;
       }
     })
   ],
-  // Página de login
   pages: {
     signIn: '/auth/login'
   },
@@ -101,7 +99,6 @@ const handler = NextAuth({
       }
       return token;
     },
-    // Adiciona id e role ao objeto de sessão
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id;
