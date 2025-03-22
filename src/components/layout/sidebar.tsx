@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
 // Importe seu arquivo JSON do Lottie
-import LogoGloboo from '../../../public/logoAnimated.json'
+import LogoGloboo from '../../../public/logo-g.json'
 
 // Definição de roles do sistema
 export enum UserRole {
