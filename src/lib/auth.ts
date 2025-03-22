@@ -16,21 +16,21 @@ const validateUser = async (email: string, password: string): Promise<User | nul
   const users = [
     { 
       id: '1', 
-      email: 'ceo@rhcontrol.com', 
+      email: 'ceo@globoo.io', 
       password: 'ceo123', 
       name: 'CEO',
       role: UserRole.CEO
     },
     { 
       id: '2', 
-      email: 'admin@rhcontrol.com', 
+      email: 'admin@globoo.io', 
       password: 'admin123', 
       name: 'Administrador',
       role: UserRole.ADMIN
     },
     { 
       id: '3', 
-      email: 'assistente@rhcontrol.com', 
+      email: 'assistente@globo.io', 
       password: 'assistente123', 
       name: 'Assistente',
       role: UserRole.ASSISTENTE
