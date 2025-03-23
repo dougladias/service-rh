@@ -11,8 +11,7 @@ export default function SimpleCharts() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-  
-  // Fixed data array that won't change between renders
+
   const chartData = React.useMemo(() => [
     { month: 'Jan', value: 128250 },
     { month: 'Fev', value: 134500 },
@@ -21,8 +20,7 @@ export default function SimpleCharts() {
     { month: 'Mai', value: 140200 },
     { month: 'Jun', value: 172500 },
   ], []);
-  
-  // Memoized formatters to prevent new function creation on every render
+
   const formatCurrency = React.useCallback((value: number) => {
     if (isMobile) {
       return `R$ ${Math.round(value / 1000)}K`;
@@ -33,7 +31,7 @@ export default function SimpleCharts() {
       maximumFractionDigits: 0
     }).format(value);
   }, [isMobile]);
-  
+
   const formatAxisLabel = React.useCallback((value: number) => {
     if (isMobile) {
       return `${Math.round(value / 1000)}K`;
@@ -47,42 +45,30 @@ export default function SimpleCharts() {
       maximumFractionDigits: 0
     }).format(value);
   }, [isMobile, isTablet]);
-  
-  // Calculate margins based on screen size
+
   const margins = React.useMemo(() => {
-    if (isMobile) {
-      return { top: 10, right: 10, bottom: 30, left: 35 };
-    }
-    if (isTablet) {
-      return { top: 10, right: 10, bottom: 30, left: 50 };
-    }
+    if (isMobile) return { top: 10, right: 10, bottom: 30, left: 35 };
+    if (isTablet) return { top: 10, right: 10, bottom: 30, left: 50 };
     return { top: 10, right: 10, bottom: 30, left: 70 };
   }, [isMobile, isTablet]);
-  
-  // Update dimensions on resize, debounced to prevent too many rerenders
+
   React.useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    
+
     const updateDimensions = () => {
       if (containerRef.current) {
         const width = containerRef.current.offsetWidth;
-        
-        // Adjust height based on width for better proportions
         const height = width < 400 ? 200 : width < 700 ? 250 : 300;
-        
         setDimensions({ width, height });
       }
     };
-    
+
     const debouncedUpdateDimensions = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(updateDimensions, 100);
     };
-    
-    // Initial dimensions
+
     updateDimensions();
-    
-    // Update on resize
     window.addEventListener('resize', debouncedUpdateDimensions);
     return () => {
       window.removeEventListener('resize', debouncedUpdateDimensions);
@@ -90,29 +76,37 @@ export default function SimpleCharts() {
     };
   }, []);
 
-  // Memoized series configuration
   const series = React.useMemo(() => [
     {
       data: chartData.map(item => item.value),
-      color: '#22d3ee', // cyan-400
+      color: '#22d3ee',
       valueFormatter: (value: number | null) => value !== null ? formatCurrency(value) : '',
       label: 'Folha Mensal',
-      marginLeft: 10,
+      labelStyle: {
+        fill: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+      },
     }
-  ], [chartData, formatCurrency]);
+  ], [chartData, formatCurrency, theme.palette.mode]);
 
-  // Only render chart when we have a valid width
   if (dimensions.width === 0) {
     return (
-      <div ref={containerRef} className="w-full bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm min-h-[300px] flex items-center justify-center">
-        <div className="text-gray-400">Carregando gráfico...</div>
+      <div
+        ref={containerRef}
+        className="w-full bg-neutral-100 dark:bg-neutral-800 p-6 rounded-2xl shadow-md min-h-[300px] flex items-center justify-center"
+      >
+        <div className="text-neutral-400 dark:text-neutral-300 animate-pulse">Carregando gráfico...</div>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="w-full bg-white dark:bg-gray-500 p-4 rounded-lg shadow-sm overflow-hidden">
-      <h3 className="text-lg font-semibold mb-4 dark:text-black">Folha de Pagamento Mensal</h3>
+    <div
+      ref={containerRef}
+      className="w-full bg-neutral-100 dark:bg-gray-800 border p-6 rounded-2xl shadow-md overflow-hidden"
+    >
+      <h3 className="text-xl font-semibold mb-4 text-neutral-800 dark:text-neutral-100">
+        Folha de Pagamento Mensal
+      </h3>
       <BarChart
         xAxis={[{
           id: 'barCategories',
@@ -120,12 +114,14 @@ export default function SimpleCharts() {
           scaleType: 'band',
           tickLabelStyle: {
             fontSize: isMobile ? 10 : 12,
+            fill: theme.palette.mode === 'dark' ? '#e5e7eb' : '#374151',
           },
         }]}
         yAxis={[{
           id: 'yAxis',
           tickLabelStyle: {
             fontSize: isMobile ? 10 : 12,
+            fill: theme.palette.mode === 'dark' ? '#e5e7eb' : '#374151',
           },
           valueFormatter: formatAxisLabel,
           tickNumber: isMobile ? 3 : 5,
@@ -139,13 +135,13 @@ export default function SimpleCharts() {
         }}
         sx={{
           '.MuiChartsAxis-tickLabel': {
-            transform: 'translateY(1px)'
+            transform: 'translateY(1px)',
           },
           '.MuiChartsAxis-line': {
-            stroke: '#e5e7eb',
+            stroke: theme.palette.mode === 'dark' ? '#4b5563' : '#d1d5db',
           },
           '.MuiChartsAxis-tick': {
-            stroke: '#e5e7eb',
+            stroke: theme.palette.mode === 'dark' ? '#4b5563' : '#d1d5db',
           },
         }}
       />

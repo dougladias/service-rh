@@ -183,7 +183,7 @@ export default function LoginPage() {
                     variants={itemVariants}
                     className="text-center mb-8"
                 >
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Bem-vindo ao Sistema RH</h1>
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Bem-vindo ao Sistema Globoo.</h1>
                     <p className="text-gray-600 dark:text-gray-300 mt-2">Faça login para acessar o painel</p>
                 </motion.div>
 
