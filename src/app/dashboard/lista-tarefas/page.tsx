@@ -188,7 +188,7 @@ export default function TodoPage() {
               id="task"
               value={task}
               onChange={(e) => setTask(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
               placeholder="Digite a tarefa..."
               required
             />
@@ -203,7 +203,7 @@ export default function TodoPage() {
                 id="priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as Priority)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
               >
                 <option value="baixa">Baixa</option>
                 <option value="normal">Normal</option>
@@ -221,7 +221,7 @@ export default function TodoPage() {
                 id="dueDate"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
               />
             </div>
           </div>
@@ -240,23 +240,23 @@ export default function TodoPage() {
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium">Suas tarefas</h2>
+            <h2 className="text-lg font-medium text-black">Suas tarefas</h2>
             <div className="flex space-x-2">
               <button 
                 onClick={() => setFilter('all')}
-                className={`px-3 py-1 text-sm rounded-md ${filter === 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
+                className={`px-3 py-1 text-sm rounded-md ${filter === 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-black'}`}
               >
                 Todas
               </button>
               <button 
                 onClick={() => setFilter('pending')}
-                className={`px-3 py-1 text-sm rounded-md ${filter === 'pending' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
+                className={`px-3 py-1 text-sm rounded-md ${filter === 'pending' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-black'}`}
               >
                 Pendentes
               </button>
               <button 
                 onClick={() => setFilter('completed')}
-                className={`px-3 py-1 text-sm rounded-md ${filter === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
+                className={`px-3 py-1 text-sm rounded-md ${filter === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-black'}`}
               >
                 Concluídas
               </button>
