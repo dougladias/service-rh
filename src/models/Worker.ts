@@ -9,6 +9,18 @@ interface IEntry {
   absent?: boolean;
 }
 
+// Nova interface para arquivos
+interface IFile {
+  filename: string;      // Nome do arquivo no sistema
+  originalName: string;  // Nome original do arquivo
+  mimetype: string;      // Tipo do arquivo (ex: application/pdf)
+  size: number;          // Tamanho em bytes
+  path: string;          // Caminho de acesso
+  uploadDate: Date;      // Data de upload
+  description?: string;  // Descrição opcional
+  category?: string;     // Categoria do documento (RG, CPF, etc)
+}
+
 export interface IWorker extends Document {
   name: string;
   cpf: string;
@@ -28,6 +40,9 @@ export interface IWorker extends Document {
   department?: string; 
   status?: "active" | "inactive" | "other";
   logs: IEntry[];
+  
+  // Campo para arquivos
+  files?: IFile[];
 }
 
 const WorkerSchema = new Schema<IWorker>({
@@ -55,6 +70,20 @@ const WorkerSchema = new Schema<IWorker>({
       date: { type: Date },
     },
   ],
+  
+  // Schema para arquivos
+  files: [
+    {
+      filename: { type: String, required: true },
+      originalName: { type: String, required: true },
+      mimetype: { type: String, required: true },
+      size: { type: Number, required: true },
+      path: { type: String, required: true },
+      uploadDate: { type: Date, default: Date.now },
+      description: { type: String },
+      category: { type: String }
+    }
+  ]
 });
 
 export default mongoose.models.Worker || mongoose.model<IWorker>("Worker", WorkerSchema);

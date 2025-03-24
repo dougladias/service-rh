@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { 
   Table,
   TableBody,
@@ -69,69 +70,28 @@ import {
   UserMinus  
 } from 'lucide-react'
 
-// Dados de exemplo para documentos
-const documents = [
-  {
-    id: 1,
-    name: "Contrato de Trabalho - Maria Silva.pdf",
-    type: "Contrato de Trabalho",
-    employee: "Maria Silva",
-    department: "TI",
-    uploadDate: "15/03/2025",
-    expiryDate: "Indeterminado",
-    size: "2.4MB",
-    fileType: "pdf",
-    tags: ["contrato", "permanente"]
-  },
-  {
-    id: 2,
-    name: "Atestado Médico - João Costa - Mar2025.pdf",
-    type: "Atestado Médico",
-    employee: "João Costa",
-    department: "Marketing",
-    uploadDate: "18/03/2025",
-    expiryDate: "18/04/2025",
-    size: "1.1MB",
-    fileType: "pdf",
-    tags: ["atestado", "licença"]
-  },
-  {
-    id: 3,
-    name: "Ficha de Admissão - Ana Oliveira.docx",
-    type: "Documento de Admissão",
-    employee: "Ana Oliveira",
-    department: "Financeiro",
-    uploadDate: "01/03/2025",
-    expiryDate: "Indeterminado",
-    size: "850KB",
-    fileType: "docx",
-    tags: ["admissão"]
-  },
-  {
-    id: 4,
-    name: "Termo de Rescisão - Carlos Santos.pdf",
-    type: "Documento de Demissão",
-    employee: "Carlos Santos",
-    department: "Vendas",
-    uploadDate: "10/03/2025",
-    expiryDate: "Indeterminado",
-    size: "1.8MB",
-    fileType: "pdf",
-    tags: ["rescisão", "demissão"]
-  },
-  {
-    id: 5,
-    name: "Certificado de Treinamento - Maria Silva.jpg",
-    type: "Certificado",
-    employee: "Maria Silva",
-    department: "TI",
-    uploadDate: "05/03/2025",
-    expiryDate: "05/03/2027",
-    size: "3.2MB",
-    fileType: "jpg",
-    tags: ["treinamento", "certificação"]
-  }
-]
+// Interface para o documento
+interface Document {
+  _id: string;
+  name: string;
+  type: string;
+  employee: string;
+  employeeId: string;
+  department: string;
+  uploadDate: string;
+  expiryDate: string;
+  size: string;
+  fileType: string;
+  path: string;
+  tags: string[];
+}
+
+// Interface para funcionário
+interface Employee {
+  _id: string;
+  name: string;
+  department?: string;
+}
 
 // Lista de tipos de documentos
 const documentTypes = [
@@ -155,18 +115,53 @@ const departments = [
 ]
 
 export default function DocumentosPage() {
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [activeTab, setActiveTab] = useState("todos")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState("Todos")
   const [selectedDepartment, setSelectedDepartment] = useState("Todos")
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  
   const [newDocument, setNewDocument] = useState({
     name: "",
     type: "",
     employee: "",
+    employeeId: "",
     department: "",
-    expiryDate: ""
+    expiryDate: "",
+    tags: ""
   })
+  
+  // Carregar funcionários e documentos
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await axios.get('/api/workers');
+        setEmployees(response.data);
+      } catch (error) {
+        console.error('Erro ao buscar funcionários:', error);
+      }
+    };
+
+    const fetchDocuments = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get('/api/documents');
+        setDocuments(response.data);
+      } catch (error) {
+        console.error('Erro ao buscar documentos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployees();
+    fetchDocuments();
+  }, []);
   
   // Filtra documentos com base nos filtros
   const filteredDocuments = documents.filter(doc => {
@@ -205,6 +200,7 @@ export default function DocumentosPage() {
       case 'jpeg':
         return <FileImage className="h-5 w-5 text-blue-500" />;
       case 'doc':
+      case 'docx':
         return <FileText className="h-5 w-5 text-blue-700" />;
       case 'zip':
       case 'rar':
@@ -220,33 +216,100 @@ export default function DocumentosPage() {
     return type ? type.icon : File;
   }
   
-  // Função para simular visualização de documento
-  const handleViewDocument = (docId: number) => {
-    alert(`Visualizando documento ID: ${docId}`);
+  // Função para visualizar documento
+  const handleViewDocument = (doc: Document) => {
+    window.open(doc.path, '_blank');
   }
   
-  // Função para simular download de documento
-  const handleDownloadDocument = (docId: number) => {
-    alert(`Baixando documento ID: ${docId}`);
+  // Função para baixar documento
+  const handleDownloadDocument = (doc: Document) => {
+    const a = document.createElement('a');
+    a.href = doc.path;
+    a.download = doc.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
   
-  // Função para simular exclusão de documento
-  const handleDeleteDocument = (docId: number) => {
-    alert(`Excluindo documento ID: ${docId}`);
+  // Função para excluir documento
+  const handleDeleteDocument = async (docId: string) => {
+    console.log('ID do documento:', docId); // Verifique o ID aqui
+    if (!confirm('Tem certeza que deseja excluir este documento?')) return;
+  
+    try {
+      await axios.delete(`/api/documents/${docId}`);
+      setDocuments(documents.filter(doc => doc._id !== docId));
+    } catch (error) {
+      console.error('Erro ao excluir documento:', error);
+      alert('Falha ao excluir o documento.');
+    }
   }
   
-  // Função para simular upload de novo documento
-  const handleUploadDocument = () => {
-    alert('Documento enviado com sucesso!');
-    setUploadDialogOpen(false);
-    setNewDocument({
-      name: "",
-      type: "",
-      employee: "",
-      department: "",
-      expiryDate: ""
-    });
+  // Função para fazer upload de novo documento
+  const handleUploadDocument = async () => {
+    if (!selectedFile || !newDocument.type || !newDocument.employeeId) {
+      alert('Por favor, preencha todos os campos obrigatórios e selecione um arquivo.');
+      return;
+    }
+    
+    setUploading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('type', newDocument.type);
+      formData.append('employeeId', newDocument.employeeId);
+      formData.append('department', newDocument.department);
+      formData.append('expiryDate', newDocument.expiryDate);
+      formData.append('tags', newDocument.tags);
+      
+      const response = await axios.post('/api/documents', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      setDocuments([...documents, response.data]);
+      setUploadDialogOpen(false);
+      setSelectedFile(null);
+      setNewDocument({
+        name: "",
+        type: "",
+        employee: "",
+        employeeId: "",
+        department: "",
+        expiryDate: "",
+        tags: ""
+      });
+      
+      alert('Documento enviado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao enviar documento:', error);
+      alert('Falha ao enviar o documento. Por favor, tente novamente.');
+    } finally {
+      setUploading(false);
+    }
   }
+  
+  // Atualiza os campos quando o funcionário é selecionado
+  const handleEmployeeSelect = (employeeId: string) => {
+    const employee = employees.find(emp => emp._id === employeeId);
+    if (employee) {
+      setNewDocument({
+        ...newDocument,
+        employeeId,
+        employee: employee.name,
+        department: employee.department || ""
+      });
+    }
+  }
+  
+  // Formatação de tamanho de arquivo
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' bytes';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -293,7 +356,7 @@ export default function DocumentosPage() {
                   <SelectContent>
                     <SelectItem value="Todos">Todos os tipos</SelectItem>
                     {documentTypes.map(type => (
-                      <SelectItem key={type.id} value={type.label}>
+                      <SelectItem key={`type-${type.id}`} value={type.label}>
                         {type.label}
                       </SelectItem>
                     ))}
@@ -307,7 +370,7 @@ export default function DocumentosPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {departments.map((dept, index) => (
-                      <SelectItem key={index} value={dept}>
+                      <SelectItem key={`dept-${index}`} value={dept}>
                         {dept}
                       </SelectItem>
                     ))}
@@ -319,7 +382,11 @@ export default function DocumentosPage() {
           
           <Card>
             <CardContent className="p-0">
-              {filteredDocuments.length > 0 ? (
+              {loading ? (
+                <div className="flex justify-center p-12">
+                  <div className="animate-spin h-8 w-8 border-4 border-cyan-500 rounded-full border-t-transparent"></div>
+                </div>
+              ) : filteredDocuments.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -337,21 +404,24 @@ export default function DocumentosPage() {
                       const DocTypeIcon = getDocTypeIcon(doc.type);
                       
                       return (
-                        <TableRow key={doc.id}>
+                        <TableRow key={doc._id}>
                           <TableCell>
                             <div className="flex items-center space-x-2">
                               {getFileIcon(doc.fileType)}
                               <span className="font-medium">{doc.name}</span>
                             </div>
                             <div className="flex mt-1 space-x-1">
-                              {doc.tags.map((tag, index) => (
+                              {doc.tags && doc.tags.map((tag, tagIndex) => (
                                 <span 
-                                  key={index} 
+                                  key={`tag-${doc._id}-${tagIndex}`}
                                   className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
                                 >
                                   {tag}
                                 </span>
                               ))}
+                            </div>
+                            <div className="mt-1 text-xs text-gray-500">
+                              {formatFileSize(parseInt(doc.size))}
                             </div>
                           </TableCell>
                           <TableCell>{doc.employee}</TableCell>
@@ -382,7 +452,7 @@ export default function DocumentosPage() {
                                     <Button 
                                       variant="ghost" 
                                       size="icon"
-                                      onClick={() => handleViewDocument(doc.id)}
+                                      onClick={() => handleViewDocument(doc)}
                                     >
                                       <Eye className="h-4 w-4" />
                                     </Button>
@@ -399,7 +469,7 @@ export default function DocumentosPage() {
                                     <Button 
                                       variant="ghost" 
                                       size="icon"
-                                      onClick={() => handleDownloadDocument(doc.id)}
+                                      onClick={() => handleDownloadDocument(doc)}
                                     >
                                       <Download className="h-4 w-4" />
                                     </Button>
@@ -418,16 +488,16 @@ export default function DocumentosPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                                  <DropdownMenuItem onClick={() => handleViewDocument(doc.id)}>
+                                  <DropdownMenuItem onClick={() => handleViewDocument(doc)}>
                                     <Eye className="mr-2 h-4 w-4" /> Visualizar
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleDownloadDocument(doc.id)}>
+                                  <DropdownMenuItem onClick={() => handleDownloadDocument(doc)}>
                                     <Download className="mr-2 h-4 w-4" /> Baixar
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
                                     className="text-red-600"
-                                    onClick={() => handleDeleteDocument(doc.id)}
+                                    onClick={() => handleDeleteDocument(doc._id)}
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" /> Excluir
                                   </DropdownMenuItem>
@@ -463,7 +533,7 @@ export default function DocumentosPage() {
         </TabsContent>
       </Tabs>
       
-      {/* Diálogo para upload de documento */}
+      {/* Diálogo para upload de documento - seguindo exatamente o layout da imagem */}
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -476,10 +546,15 @@ export default function DocumentosPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label htmlFor="file" className="text-sm font-medium">Arquivo</label>
-              <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50">
+              <div 
+                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50"
+                onClick={() => document.getElementById('file')?.click()}
+              >
                 <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                 <p className="text-sm text-muted-foreground">
-                  Arraste um arquivo ou clique para selecionar
+                  {selectedFile 
+                    ? selectedFile.name 
+                    : "Arraste um arquivo ou clique para selecionar"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Formatos suportados: PDF, DOCX, JPG, PNG (max. 10MB)
@@ -489,6 +564,11 @@ export default function DocumentosPage() {
                   type="file" 
                   className="hidden" 
                   accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setSelectedFile(e.target.files[0]);
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -504,7 +584,7 @@ export default function DocumentosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {documentTypes.map(type => (
-                    <SelectItem key={type.id} value={type.label}>
+                    <SelectItem key={`modal-type-${type.id}`} value={type.label}>
                       {type.label}
                     </SelectItem>
                   ))}
@@ -514,12 +594,21 @@ export default function DocumentosPage() {
             
             <div className="space-y-2">
               <label htmlFor="employee" className="text-sm font-medium">Funcionário</label>
-              <Input 
-                id="employee" 
-                placeholder="Nome do funcionário"
-                value={newDocument.employee}
-                onChange={(e) => setNewDocument({...newDocument, employee: e.target.value})}
-              />
+              <Select
+                value={newDocument.employeeId}
+                onValueChange={handleEmployeeSelect}
+              >
+                <SelectTrigger id="employee">
+                  <SelectValue placeholder="Selecione o funcionário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map(employee => (
+                    <SelectItem key={`modal-employee-${employee._id}`} value={employee._id}>
+                      {employee.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -534,7 +623,7 @@ export default function DocumentosPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {departments.slice(1).map((dept, index) => (
-                      <SelectItem key={index} value={dept}>
+                      <SelectItem key={`modal-dept-${index}`} value={dept}>
                         {dept}
                       </SelectItem>
                     ))}
@@ -555,7 +644,12 @@ export default function DocumentosPage() {
             
             <div className="space-y-2">
               <label htmlFor="tags" className="text-sm font-medium">Tags (separadas por vírgula)</label>
-              <Input id="tags" placeholder="ex: contrato, permanente" />
+              <Input 
+                id="tags" 
+                placeholder="ex: contrato, permanente" 
+                value={newDocument.tags}
+                onChange={(e) => setNewDocument({...newDocument, tags: e.target.value})}
+              />
             </div>
           </div>
           
@@ -563,9 +657,21 @@ export default function DocumentosPage() {
             <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleUploadDocument}>
-              <Upload className="mr-2 h-4 w-4" />
-              Enviar Documento
+            <Button 
+              onClick={handleUploadDocument}
+              disabled={uploading || !selectedFile}
+            >
+              {uploading ? (
+                <>
+                  <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Enviar Documento
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
