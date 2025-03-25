@@ -1,5 +1,3 @@
-
-
 'use client'
 
 import { useState } from 'react'
@@ -27,42 +25,79 @@ import {
   DialogTrigger 
 } from '@/components/ui/dialog'
 import { 
-  getPayrolls, 
-  processPayroll, 
-  generatePayslip 
-} from '@/services/payroll-service'
-import { Payroll, PayrollFilter } from '@/types/payroll'
-import { 
   FileText, 
   Download 
 } from 'lucide-react'
+import axios from 'axios'
 import { formatCurrency } from '@/lib/utils'
 
+interface Payroll {
+  _id: string
+  employeeName: string
+  month: number
+  year: number
+  baseSalary: number
+  overtimePay: number
+  deductions: number
+  totalSalary: number
+  status: 'processed' | 'pending' | 'paid'
+}
+
 export default function PayrollPage() {
-  const [payrolls, setPayrolls] = useState<Payroll[]>(getPayrolls())
-  const [filter, setFilter] = useState<PayrollFilter>({
+  const [payrolls, setPayrolls] = useState<Payroll[]>([])
+  const [filter, setFilter] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear()
   })
 
   const handleProcessPayroll = async () => {
-    if (filter.month && filter.year) {
-      const processedPayrolls = await processPayroll(filter.month, filter.year)
-      setPayrolls(processedPayrolls)
+    try {
+      if (filter.month && filter.year) {
+        const response = await axios.post('/api/payroll/process', {
+          month: filter.month,
+          year: filter.year
+        })
+        console.log('Folha processada:', response.data)
+        // Atualiza a lista de folhas
+        const payrollResponse = await axios.get('/api/payroll/process', {
+          params: filter
+        })
+        setPayrolls(payrollResponse.data)
+      }
+    } catch (error) {
+      console.error('Erro ao processar folha:', error)
+      alert('Erro ao processar folha de pagamento')
     }
   }
 
-  const handleDownloadPayslip = async (payrollId: string) => {
+  const handleDownloadPayslip = async (payroll: Payroll) => {
     try {
-      const pdfBlob = await generatePayslip(payrollId)
-      const url = window.URL.createObjectURL(pdfBlob)
+      console.log('Iniciando download do holerite:', {
+        id: payroll._id,
+        name: payroll.employeeName
+      })
+
+      const response = await axios.get(`/api/payroll/holerite/${payroll._id}`, {
+        responseType: 'blob'
+      })
+
+      console.log('Response recebida:', response.status)
+
+      const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
-      link.download = `holerite_${payrollId}.pdf`
+      link.setAttribute('download', `holerite_${payroll.employeeName}_${payroll.month}_${payroll.year}.pdf`)
+      document.body.appendChild(link)
       link.click()
+      link.remove()
       window.URL.revokeObjectURL(url)
     } catch (error) {
-      console.error('Erro ao gerar holerite:', error)
+      console.error('Erro detalhado ao baixar holerite:', error)
+      if (axios.isAxiosError(error)) {
+        console.error('Status:', error.response?.status)
+        console.error('Data:', error.response?.data)
+      }
+      alert('Não foi possível baixar o holerite. Por favor, tente novamente.')
     }
   }
 
@@ -153,7 +188,7 @@ export default function PayrollPage() {
         </TableHeader>
         <TableBody>
           {payrolls.map((payroll) => (
-            <TableRow key={payroll.id}>
+            <TableRow key={payroll._id}>
               <TableCell>{payroll.employeeName}</TableCell>
               <TableCell>
                 {`${payroll.month}/${payroll.year}`}
@@ -186,7 +221,7 @@ export default function PayrollPage() {
                 <Button 
                   variant="outline" 
                   size="icon"
-                  onClick={() => handleDownloadPayslip(payroll.id)}
+                  onClick={() => handleDownloadPayslip(payroll)}
                 >
                   <Download size={16} />
                 </Button>
