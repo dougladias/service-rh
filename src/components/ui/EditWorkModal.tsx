@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -21,6 +21,8 @@ interface EditWorkerModalProps {
     nascimento: string;
     admissao: string;
     salario: string;
+    // Aqui o campo é "ajuda", conforme o modelo
+    ajuda: string;
     numero: string;
     email: string;
     address: string;
@@ -34,6 +36,8 @@ interface EditWorkerModalProps {
     nascimento: string;
     admissao: string;
     salario: string;
+    // Campo "ajuda" enviado para a API
+    ajuda: string;
     numero: string;
     email: string;
     address: string;
@@ -48,7 +52,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
   worker,
   onSave,
 }) => {
-  // State para todos os campos
+  // Estado para os campos do formulário, utilizando o nome "ajuda" em vez de "ajudaCusto"
   const [formData, setFormData] = useState<{
     _id: string;
     name: string;
@@ -56,6 +60,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
     nascimento: string;
     admissao: string;
     salario: string;
+    ajuda: string;
     numero: string;
     email: string;
     address: string;
@@ -68,6 +73,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
     nascimento: "",
     admissao: "",
     salario: "",
+    ajuda: "",
     numero: "",
     email: "",
     address: "",
@@ -75,13 +81,12 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
     role: "",
   });
 
-  // Atualizar formData quando worker mudar
+  // Atualiza o estado quando o worker recebido muda
   useEffect(() => {
     if (worker && isOpen) {
       console.log("Carregando dados do funcionário:", worker);
       console.log("Tipo de contrato original:", worker.contract);
       
-      // Usar o worker para inicializar o formData
       setFormData({
         _id: worker._id || "",
         name: worker.name || "",
@@ -89,10 +94,11 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
         nascimento: worker.nascimento || "",
         admissao: worker.admissao || "",
         salario: worker.salario || "",
+        ajuda: worker.ajuda || "",
         numero: worker.numero || "",
         email: worker.email || "",
         address: worker.address || "",
-        contract: worker.contract || "CLT", // Usar o valor do worker
+        contract: worker.contract || "CLT",
         role: worker.role || ""
       });
     }
@@ -105,7 +111,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Função para controlar a mudança do tipo de contrato
+  // Controla a mudança do tipo de contrato
   const handleContractChange = (value: string) => {
     console.log("Alterando tipo de contrato para:", value);
     setFormData((prev) => ({
@@ -151,7 +157,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
           </button>
         </div>
         
-        {/* Adicionando mensagem de debug sobre o tipo de contrato */}
+        {/* Mensagem de debug sobre o tipo de contrato */}
         <div className="mb-4 p-2 bg-gray-700 rounded">
           <p className="text-sm text-gray-300">
             <span className="font-bold">Debug:</span> Tipo de contrato atual: {formData.contract}
@@ -235,6 +241,22 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               required
             />
           </motion.div>
+          {/* Campo de Ajuda de Custo (mapeado para "ajuda") */}
+          <motion.div variants={inputVariants}>
+            <label htmlFor="ajuda" className="block text-sm font-medium text-gray-300">
+              Ajuda de Custo:
+            </label>
+            <input
+              type="number"
+              id="ajuda"
+              name="ajuda"
+              className="border rounded border-gray-500 pl-2 w-full"
+              value={formData.ajuda}
+              onChange={handleChange}
+              step="0.01"
+              required
+            />
+          </motion.div>
           <motion.div variants={inputVariants}>
             <label htmlFor="numero" className="block text-sm font-medium text-gray-300">
               Número:
@@ -284,7 +306,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
             <Select
               value={formData.contract}
               onValueChange={(value) => {
-                console.log("Contrato selecionado:", value); // Adicione este log para depuração
+                console.log("Contrato selecionado:", value);
                 handleContractChange(value);
               }}
             >

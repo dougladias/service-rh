@@ -516,6 +516,7 @@ export default function EmployeesPage() {
               _id: selectedWorker._id as string,
               nascimento: selectedWorker.nascimento.toISOString().split("T")[0],
               admissao: selectedWorker.admissao.toISOString().split("T")[0],
+              ajuda: selectedWorker.ajuda || '', // Provide default empty string for ajuda
             }}
             onSave={handleSave}
           />
