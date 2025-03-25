@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ButtonGlitchBrightness } from "./ButtonGlitch";
 import { 
@@ -21,7 +21,7 @@ interface EditWorkerModalProps {
     nascimento: string;
     admissao: string;
     salario: string;
-    // Aqui o campo é "ajuda", conforme o modelo
+    // Campo mapeado para o modelo (ajuda)
     ajuda: string;
     numero: string;
     email: string;
@@ -36,7 +36,6 @@ interface EditWorkerModalProps {
     nascimento: string;
     admissao: string;
     salario: string;
-    // Campo "ajuda" enviado para a API
     ajuda: string;
     numero: string;
     email: string;
@@ -52,7 +51,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
   worker,
   onSave,
 }) => {
-  // Estado para os campos do formulário, utilizando o nome "ajuda" em vez de "ajudaCusto"
+  // Estado para os campos do formulário, usando "ajuda" (conforme o modelo)
   const [formData, setFormData] = useState<{
     _id: string;
     name: string;
@@ -81,51 +80,59 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
     role: "",
   });
 
-  // Atualiza o estado quando o worker recebido muda
-  useEffect(() => {
-    if (worker && isOpen) {
-      console.log("Carregando dados do funcionário:", worker);
-      console.log("Tipo de contrato original:", worker.contract);
-      
-      setFormData({
-        _id: worker._id || "",
-        name: worker.name || "",
-        cpf: worker.cpf || "",
-        nascimento: worker.nascimento || "",
-        admissao: worker.admissao || "",
-        salario: worker.salario || "",
-        ajuda: worker.ajuda || "",
-        numero: worker.numero || "",
-        email: worker.email || "",
-        address: worker.address || "",
-        contract: worker.contract || "CLT",
-        role: worker.role || ""
-      });
-    }
-  }, [worker, isOpen]);
+const [didInitialize, setDidInitialize] = useState(false);
 
-  if (!isOpen || !worker) return null;
+useEffect(() => {
+  // Carrega os dados somente na abertura do modal e não a cada renderização
+  if (worker && isOpen && !didInitialize) {
+    setFormData({
+      _id: worker._id || "",
+      name: worker.name || "",
+      cpf: worker.cpf || "",
+      nascimento: worker.nascimento || "",
+      admissao: worker.admissao || "",
+      salario: worker.salario || "",
+      ajuda: worker.ajuda || "",
+      numero: worker.numero || "",
+      email: worker.email || "",
+      address: worker.address || "",
+      contract: worker.contract || "CLT",
+      role: worker.role || ""
+    });
+    setDidInitialize(true);
+  }
+  
+  // Resetar o flag quando o modal é fechado
+  if (!isOpen) {
+    setDidInitialize(false);
+  }
+}, [worker, isOpen, didInitialize]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
-  // Controla a mudança do tipo de contrato
-  const handleContractChange = (value: string) => {
-    console.log("Alterando tipo de contrato para:", value);
-    setFormData((prev) => ({
-      ...prev,
-      contract: value
-    }));
-  };
+  const handleContractChange = useCallback((value: string) => {
+    console.log("Contrato selecionado:", value);
+    if (value) {
+      setFormData((prev) => {
+        // Só atualiza se o valor for diferente do atual
+        if (prev.contract !== value) {
+          return { ...prev, contract: value };
+        }
+        return prev;
+      });
+    }
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Enviando formulário com contrato:", formData.contract);
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();    
     onSave(formData);
     onClose();
-  };
+  }, [formData, onSave, onClose]);
+
+  if (!isOpen || !worker) return null;
 
   const formVariants = {
     hidden: { opacity: 0, y: -20 },
@@ -144,11 +151,13 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      {/* Alterado: removida a classe bg-gray-800 e definida cor em hex */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-gray-800 p-6 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        className="p-6 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        style={{ backgroundColor: "#1F2937" }} // Equivalente a bg-gray-800
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-white">Editar Funcionário</h2>
@@ -157,8 +166,8 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
           </button>
         </div>
         
-        {/* Mensagem de debug sobre o tipo de contrato */}
-        <div className="mb-4 p-2 bg-gray-700 rounded">
+        {/* Alterado: removida a classe bg-gray-700 e definida cor em hex */}
+        <div className="mb-4 p-2 rounded" style={{ backgroundColor: "#374151" }}>
           <p className="text-sm text-gray-300">
             <span className="font-bold">Debug:</span> Tipo de contrato atual: {formData.contract}
           </p>
