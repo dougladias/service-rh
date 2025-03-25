@@ -1,9 +1,15 @@
-// components/ui/EditWorkerModal.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ButtonGlitchBrightness } from "./ButtonGlitch";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 interface EditWorkerModalProps {
   isOpen: boolean;
@@ -42,7 +48,20 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
   worker,
   onSave,
 }) => {
-  const [formData, setFormData] = useState({
+  // State para todos os campos
+  const [formData, setFormData] = useState<{
+    _id: string;
+    name: string;
+    cpf: string;
+    nascimento: string;
+    admissao: string;
+    salario: string;
+    numero: string;
+    email: string;
+    address: string;
+    contract: string;
+    role: string;
+  }>({
     _id: "",
     name: "",
     cpf: "",
@@ -52,15 +71,32 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
     numero: "",
     email: "",
     address: "",
-    contract: "",
+    contract: "CLT", // Valor padrão
     role: "",
   });
 
+  // Atualizar formData quando worker mudar
   useEffect(() => {
-    if (worker) {
-      setFormData(worker); // Update formData when worker changes
+    if (worker && isOpen) {
+      console.log("Carregando dados do funcionário:", worker);
+      console.log("Tipo de contrato original:", worker.contract);
+      
+      // Usar o worker para inicializar o formData
+      setFormData({
+        _id: worker._id || "",
+        name: worker.name || "",
+        cpf: worker.cpf || "",
+        nascimento: worker.nascimento || "",
+        admissao: worker.admissao || "",
+        salario: worker.salario || "",
+        numero: worker.numero || "",
+        email: worker.email || "",
+        address: worker.address || "",
+        contract: worker.contract || "CLT", // Usar o valor do worker
+        role: worker.role || ""
+      });
     }
-  }, [worker]);
+  }, [worker, isOpen]);
 
   if (!isOpen || !worker) return null;
 
@@ -69,10 +105,20 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Função para controlar a mudança do tipo de contrato
+  const handleContractChange = (value: string) => {
+    console.log("Alterando tipo de contrato para:", value);
+    setFormData((prev) => ({
+      ...prev,
+      contract: value
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData); // Pass updated worker data to the parent
-    onClose(); // Close the modal
+    console.log("Enviando formulário com contrato:", formData.contract);
+    onSave(formData);
+    onClose();
   };
 
   const formVariants = {
@@ -84,6 +130,11 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
     hidden: { opacity: 0, y: -20 },
     visible: { opacity: 1, y: 0 },
   };
+
+  const contractTypes = [
+    { value: "CLT", label: "CLT" },
+    { value: "PJ", label: "PJ" }
+  ];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -99,6 +150,13 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
             ✕
           </button>
         </div>
+        
+        {/* Adicionando mensagem de debug sobre o tipo de contrato */}
+        <div className="mb-4 p-2 bg-gray-700 rounded">
+          <p className="text-sm text-gray-300">
+            <span className="font-bold">Debug:</span> Tipo de contrato atual: {formData.contract}
+          </p>
+        </div>
 
         <motion.form
           onSubmit={handleSubmit}
@@ -113,7 +171,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
             </label>
             <input
               type="text"
-              className="border rounded border-gray-500 pl-2"
+              className="border rounded border-gray-500 pl-2 w-full"
               id="name"
               name="name"
               value={formData.name}
@@ -129,7 +187,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="text"
               id="cpf"
               name="cpf"
-              className="border rounded border-gray-500 pl-2"
+              className="border rounded border-gray-500 pl-2 w-full"
               value={formData.cpf}
               onChange={handleChange}
               required
@@ -143,7 +201,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="date"
               id="nascimento"
               name="nascimento"
-              className="border rounded border-gray-500 pl-2"
+              className="border rounded border-gray-500 pl-2 w-full"
               value={formData.nascimento}
               onChange={handleChange}
               required
@@ -157,7 +215,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="date"
               id="admissao"
               name="admissao"
-              className="border rounded border-gray-500 pl-2"
+              className="border rounded border-gray-500 pl-2 w-full"
               value={formData.admissao}
               onChange={handleChange}
               required
@@ -171,7 +229,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="text"
               id="salario"
               name="salario"
-              className="border rounded border-gray-500 pl-2"
+              className="border rounded border-gray-500 pl-2 w-full"
               value={formData.salario}
               onChange={handleChange}
               required
@@ -185,7 +243,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="text"
               id="numero"
               name="numero"
-              className="border rounded border-gray-500 pl-2"
+              className="border rounded border-gray-500 pl-2 w-full"
               value={formData.numero}
               onChange={handleChange}
               required
@@ -199,7 +257,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="email"
               id="email"
               name="email"
-              className="border rounded border-gray-500 pl-2"
+              className="border rounded border-gray-500 pl-2 w-full"
               value={formData.email}
               onChange={handleChange}
               required
@@ -213,7 +271,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="text"
               id="address"
               name="address"
-              className="border rounded border-gray-500 pl-2"
+              className="border rounded border-gray-500 pl-2 w-full"
               value={formData.address}
               onChange={handleChange}
               required
@@ -221,17 +279,26 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
           </motion.div>
           <motion.div variants={inputVariants}>
             <label htmlFor="contract" className="block text-sm font-medium text-gray-300">
-              Tipo de contrato (CNPJ ou CLT):
+              Tipo de contrato:
             </label>
-            <input
-              type="text"
-              id="contract"
-              className="border rounded border-gray-500 pl-2"
-              name="contract"
+            <Select
               value={formData.contract}
-              onChange={handleChange}
-              required
-            />
+              onValueChange={(value) => {
+                console.log("Contrato selecionado:", value); // Adicione este log para depuração
+                handleContractChange(value);
+              }}
+            >
+              <SelectTrigger id="contract" className="bg-transparent text-white border-gray-500">
+                <SelectValue placeholder="Selecione o tipo de contrato" />
+              </SelectTrigger>
+              <SelectContent>
+                {contractTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </motion.div>
           <motion.div variants={inputVariants}>
             <label htmlFor="role" className="block text-sm font-medium text-gray-300">
@@ -241,7 +308,7 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
               type="text"
               id="role"
               name="role"
-              className="border rounded border-gray-500 pl-2"
+              className="border rounded border-gray-500 pl-2 w-full"
               value={formData.role}
               onChange={handleChange}
               required

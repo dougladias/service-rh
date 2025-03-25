@@ -1,4 +1,4 @@
-// pages/api/workers.ts
+// src/pages/api/workers.ts
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import mongoose from "mongoose";
@@ -29,9 +29,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           numero,
           email,
           address,
-          contract,
+          contract, // Agora recebe "CLT" ou "PJ" do select
           role,
         } = req.body;
+
+        // Valide o tipo de contrato explicitamente
+        const validContract = contract === "CLT" || contract === "PJ" ? contract : "CLT";
 
         const worker = new Worker({
           name,
@@ -43,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           numero,
           email,
           address,
-          contract,
+          contract: validContract, // Salva o valor validado
           role,
           logs: [],
         });
@@ -51,6 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await worker.save();
         res.status(201).json(worker);
       } catch (error) {
+        console.error("Error creating worker:", error);
         res.status(500).json({ message: "Failed to add worker", error });
       }
       break;
@@ -58,8 +62,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     case "PUT":
       try {
         const { id, action, updates } = req.body;
+        
+        // Logando para debug
+        console.log("PUT request received:", { id, action, updates });
+        
         const worker = await Worker.findById(id);
-        if (!worker) throw new Error("Worker not found");
+        if (!worker) {
+          console.error("Worker not found:", id);
+          return res.status(404).json({ message: "Worker not found" });
+        }
 
         if (action === "entrada") {
           worker.logs.push({ entryTime: new Date() });
@@ -71,12 +82,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         } else if (action === "faltou") {
           worker.logs.push({ faltou: true, date: new Date() });
         } else if (updates) {
+          // Verificamos explicitamente o tipo de contrato
+          if (updates.contract) {
+            // Garantimos que o contrato seja apenas CLT ou PJ
+            const validContract = updates.contract === "CLT" || updates.contract === "PJ" 
+              ? updates.contract 
+              : "CLT";
+            
+            worker.contract = validContract;
+            console.log("Contract updated to:", validContract);
+            
+            // Remova o contrato de updates para evitar atualização dupla
+            delete updates.contract;
+          }
+          
+          // Atualize os outros campos
           Object.assign(worker, updates);
         }
 
-        await worker.save();
-        res.status(200).json(worker);
+        // Salve as alterações
+        const updatedWorker = await worker.save();
+        console.log("Worker updated successfully:", updatedWorker.contract);
+        
+        res.status(200).json(updatedWorker);
       } catch (error) {
+        console.error("Error updating worker:", error);
         res.status(500).json({ message: "Failed to update worker", error });
       }
       break;
@@ -85,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         const { id } = req.body;
         await Worker.findByIdAndDelete(id);
-        res.status(200).json({ message: "Funconário deletado." });
+        res.status(200).json({ message: "Funcionário deletado." });
       } catch (error) {
         res.status(500).json({ message: "Failed to delete worker", error });
       }

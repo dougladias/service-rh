@@ -1,3 +1,4 @@
+// src/models/Worker.ts
 import mongoose, { Schema, Document } from "mongoose";
 
 interface IEntry {
@@ -31,7 +32,7 @@ export interface IWorker extends Document {
   numero: string;
   email: string;
   address: string;
-  contract: string;
+  contract: string;     // Agora limitado a "CLT" ou "PJ"
   role: string;
   /**
    * Optional new fields
@@ -55,7 +56,11 @@ const WorkerSchema = new Schema<IWorker>({
   numero: { type: String, required: true },
   email: { type: String, required: true },
   address: { type: String, required: true },
-  contract: { type: String, required: true },
+  contract: { 
+    type: String, 
+    required: true,
+    enum: ["CLT", "PJ"] // Restringe os valores a somente CLT ou PJ
+  },
   role: { type: String, required: true },
 
   // New optional fields
