@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { connectToDatabase } from '@/api/mongodb';
 import mongoose from 'mongoose';
-import PDFDocument from 'pdfkit';
 
 // Schema do Holerite
 const PayrollSchema = new mongoose.Schema({
@@ -35,9 +34,6 @@ const PayrollSchema = new mongoose.Schema({
   processedAt: { type: Date, default: Date.now },
 });
 
-const Payroll = mongoose.models.Payroll || mongoose.model('Payroll', PayrollSchema);
-
-// Formatação de moeda
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -46,6 +42,12 @@ const formatCurrency = (value: number): string => {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('Recebida requisição para gerar holerite:', {
+    method: req.method,
+    query: req.query,
+    headers: req.headers
+  });
+
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Método não permitido' });
   }
@@ -55,198 +57,189 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { id } = req.query;
 
     // Validação do ID
-    if (!id || typeof id !== 'string' || !mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'ID inválido' });
+    if (!id || typeof id !== 'string') {
+      console.error('ID não fornecido ou inválido:', id);
+      return res.status(400).json({ message: 'ID do holerite é obrigatório' });
     }
 
-    // Busca o holerite com dados do funcionário
-    const payroll = await Payroll.findById(id).populate('employeeId');
+    // Verificar se o ID é um ObjectId válido
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('ID de holerite inválido:', id);
+      return res.status(400).json({ message: 'ID de holerite inválido' });
+    }
 
+    // Busca o holerite
+    console.log('Buscando holerite com ID:', id);
+    
+    // Definir o modelo se ainda não existe
+    const PayrollModel = mongoose.models.Payroll || mongoose.model('Payroll', PayrollSchema);
+    
+    // Buscar o holerite
+    const payroll = await PayrollModel.findById(id);
+    
     if (!payroll) {
+      console.error('Holerite não encontrado para o ID:', id);
       return res.status(404).json({ message: 'Holerite não encontrado' });
     }
 
-    // Verifica se employeeId existe no documento do holerite
-    if (!payroll.employeeId) {
-      return res.status(404).json({ message: 'Dados do funcionário não encontrados' });
-    }
+    console.log('Holerite encontrado:', payroll.employeeName);
 
-    // Cria o documento PDF
-    const doc = new PDFDocument({
-      size: 'A4',
-      margin: 50,
-      info: {
-        Title: `Holerite - ${payroll.employeeName} - ${payroll.month}/${payroll.year}`,
-        Author: 'Sistema RH',
-        Subject: 'Holerite',
-        Keywords: 'holerite, contracheque, pagamento',
-      },
-    });
+    // Definir o mês por extenso
+    const meses = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    const mesExtenso = meses[payroll.month - 1];
 
-    // Configura os headers para download
-    res.setHeader('Content-Type', 'application/pdf');
+    // Cria resposta HTML em vez de PDF para teste
+    res.setHeader('Content-Type', 'text/html');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=holerite_${payroll.employeeName.replace(/\s+/g, '_')}_${payroll.month}_${
-        payroll.year
-      }.pdf`
+      `inline; filename=holerite_${payroll.employeeName.replace(/\s+/g, '_')}_${payroll.month}_${payroll.year}.html`
     );
 
-    // Pipe o PDF para a resposta
-    doc.pipe(res);
+    // Gera HTML do holerite
+    const html = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Holerite - ${payroll.employeeName}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .info { margin-bottom: 20px; }
+          .total { font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>RECIBO DE PAGAMENTO</h1>
+          <p>Competência: ${mesExtenso}/${payroll.year}</p>
+        </div>
 
-    try {
-      // Cabeçalho do Holerite
-      doc.image('public/logo.png', 50, 50, { width: 100 }) // Ajuste o caminho do logo
-        .fontSize(16)
-        .text('RECIBO DE PAGAMENTO', { align: 'center' })
-        .moveDown();
-    } catch (error) {
-      console.error('Erro ao adicionar o logotipo:', error);
-    }
+        <div class="info">
+          <h2>DADOS DO FUNCIONÁRIO</h2>
+          <p>Nome: ${payroll.employeeName}</p>
+          <p>Tipo de Contrato: ${payroll.contract}</p>
+          <p>Matrícula: ${payroll.employeeId}</p>
+        </div>
 
-    // Informações da Empresa
-    doc.fontSize(10)
-      .text('EMPRESA EXEMPLO LTDA', { align: 'left' })
-      .text('CNPJ: 00.000.000/0001-00')
-      .text('Endereço: Rua Exemplo, 123 - São Paulo/SP')
-      .moveDown();
+        <table>
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th>Referência</th>
+              <th>Proventos</th>
+              <th>Descontos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Salário Base</td>
+              <td>30 dias</td>
+              <td>${formatCurrency(payroll.baseSalary)}</td>
+              <td>-</td>
+            </tr>
+            ${payroll.overtimePay > 0 ? `
+              <tr>
+                <td>Horas Extras</td>
+                <td>${payroll.overtimeHours}h</td>
+                <td>${formatCurrency(payroll.overtimePay)}</td>
+                <td>-</td>
+              </tr>
+            ` : ''}
+            ${payroll.contract === 'CLT' ? `
+              ${payroll.inss ? `
+                <tr>
+                  <td>INSS</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>${formatCurrency(payroll.inss)}</td>
+                </tr>
+              ` : ''}
+              ${payroll.irrf ? `
+                <tr>
+                  <td>IRRF</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>${formatCurrency(payroll.irrf)}</td>
+                </tr>
+              ` : ''}
+              ${payroll.fgts ? `
+                <tr>
+                  <td>FGTS (Depósito)</td>
+                  <td>-</td>
+                  <td>${formatCurrency(payroll.fgts)}</td>
+                  <td>-</td>
+                </tr>
+              ` : ''}
+            ` : ''}
+            ${payroll.benefits ? `
+              ${payroll.benefits.valeTransporte > 0 ? `
+                <tr>
+                  <td>Vale Transporte</td>
+                  <td>-</td>
+                  <td>${formatCurrency(payroll.benefits.valeTransporte)}</td>
+                  <td>-</td>
+                </tr>
+              ` : ''}
+              ${payroll.benefits.valeRefeicao > 0 ? `
+                <tr>
+                  <td>Vale Refeição</td>
+                  <td>-</td>
+                  <td>${formatCurrency(payroll.benefits.valeRefeicao)}</td>
+                  <td>-</td>
+                </tr>
+              ` : ''}
+              ${payroll.benefits.planoSaude > 0 ? `
+                <tr>
+                  <td>Plano de Saúde</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>${formatCurrency(payroll.benefits.planoSaude)}</td>
+                </tr>
+              ` : ''}
+            ` : ''}
+          </tbody>
+          <tfoot>
+            <tr class="total">
+              <td colspan="2">Totais</td>
+              <td>${formatCurrency(payroll.baseSalary + (payroll.overtimePay || 0))}</td>
+              <td>${formatCurrency(payroll.deductions)}</td>
+            </tr>
+            <tr class="total">
+              <td colspan="3">Valor Líquido</td>
+              <td>${formatCurrency(payroll.totalSalary)}</td>
+            </tr>
+          </tfoot>
+        </table>
 
-    // Informações do Funcionário
-    doc.fontSize(12)
-      .text('DADOS DO FUNCIONÁRIO', { underline: true })
-      .moveDown()
-      .fontSize(10);
+        <div style="margin-top: 50px;">
+          <div style="float: left; width: 45%; text-align: center;">
+            <div style="border-top: 1px solid black; margin-top: 50px; padding-top: 5px;">
+              Assinatura do Funcionário
+            </div>
+          </div>
+          <div style="float: right; width: 45%; text-align: center;">
+            <div style="border-top: 1px solid black; margin-top: 50px; padding-top: 5px;">
+              Assinatura da Empresa
+            </div>
+          </div>
+        </div>
 
-    const employee = payroll.employeeId;
+        <div style="clear: both; margin-top: 100px; font-size: 12px;">
+          <p>Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}</p>
+          <p>Código de Autenticação: ${payroll._id}</p>
+        </div>
+      </body>
+      </html>
+    `;
 
-    try {
-      const dadosFuncionario = [
-        ['Nome:', payroll.employeeName, 'Matrícula:', employee._id.toString()],
-        ['Cargo:', employee.role, 'Admissão:', new Date(employee.admissao).toLocaleDateString('pt-BR')],
-        ['CPF:', employee.cpf, 'Tipo Contrato:', payroll.contract],
-      ];
+    res.send(html);
 
-      dadosFuncionario.forEach((linha) => {
-        doc.text(linha[0], 50, doc.y)
-          .text(linha[1], 150, doc.y - doc.currentLineHeight())
-          .text(linha[2], 300, doc.y - doc.currentLineHeight())
-          .text(linha[3], 400, doc.y - doc.currentLineHeight())
-          .moveDown();
-      });
-    } catch (error) {
-      console.error('Erro ao adicionar os dados do funcionário:', error);
-    }
-
-    doc.moveDown();
-
-    // Competência
-    doc.fontSize(11)
-      .text(
-        `Referente: ${new Date(payroll.year, payroll.month - 1).toLocaleDateString('pt-BR', {
-          month: 'long',
-          year: 'numeric',
-        })}`,
-        { align: 'right' }
-      )
-      .moveDown();
-
-    // Tabela de Proventos e Descontos
-    const startX = 50;
-    let startY = doc.y + 10;
-
-    // Cabeçalho da tabela
-    doc.font('Helvetica-Bold')
-      .text('Descrição', startX, startY)
-      .text('Referência', 250, startY)
-      .text('Proventos', 350, startY)
-      .text('Descontos', 450, startY);
-
-    // Linha separadora
-    startY += 20;
-    doc.moveTo(startX, startY).lineTo(550, startY).stroke();
-
-    // Reset fonte
-    doc.font('Helvetica');
-
-    // Função helper para adicionar linha
-    const addLine = (desc: string, ref: string, prov: string, desc2: string) => {
-      startY += 20;
-      doc.text(desc, startX, startY)
-        .text(ref, 250, startY)
-        .text(prov, 350, startY)
-        .text(desc2, 450, startY);
-    };
-
-    // Salário Base
-    addLine('Salário Base', '30d', formatCurrency(payroll.baseSalary), '-');
-
-    // Horas Extras
-    if (payroll.overtimePay > 0) {
-      addLine('Horas Extras', `${payroll.overtimeHours}h`, formatCurrency(payroll.overtimePay), '-');
-    }
-
-    // Descontos CLT
-    if (payroll.contract === 'CLT') {
-      if (payroll.inss) {
-        addLine('INSS', '-', '-', formatCurrency(payroll.inss));
-      }
-      if (payroll.irrf) {
-        addLine('IRRF', '-', '-', formatCurrency(payroll.irrf));
-      }
-      if (payroll.fgts) {
-        addLine('FGTS', '-', formatCurrency(payroll.fgts), '-');
-      }
-    }
-
-    // Benefícios
-    if (payroll.benefits) {
-      if (payroll.benefits.valeTransporte) {
-        addLine('Vale Transporte', '-', formatCurrency(payroll.benefits.valeTransporte), '-');
-      }
-      if (payroll.benefits.valeRefeicao) {
-        addLine('Vale Refeição', '-', formatCurrency(payroll.benefits.valeRefeicao), '-');
-      }
-      if (payroll.benefits.planoSaude) {
-        addLine('Plano de Saúde', '-', '-', formatCurrency(payroll.benefits.planoSaude));
-      }
-    }
-
-    // Linha separadora para totais
-    startY += 30;
-    doc.moveTo(startX, startY).lineTo(550, startY).stroke();
-
-    // Totais
-    startY += 20;
-    doc.font('Helvetica-Bold')
-      .text('Totais:', startX, startY)
-      .text(formatCurrency(payroll.baseSalary + payroll.overtimePay), 350, startY)
-      .text(formatCurrency(payroll.deductions), 450, startY);
-
-    // Valor Líquido
-    startY += 30;
-    doc.fontSize(12)
-      .text('Valor Líquido:', startX)
-      .text(formatCurrency(payroll.totalSalary), 350, startY);
-
-    // Assinaturas
-    startY = doc.y + 50;
-    doc.fontSize(10)
-      .moveTo(50, startY).lineTo(250, startY).stroke()
-      .moveTo(300, startY).lineTo(500, startY).stroke()
-      .text('Assinatura do Funcionário', 50, startY + 5, { width: 200, align: 'center' })
-      .text('Assinatura da Empresa', 300, startY + 5, { width: 200, align: 'center' });
-
-    // Data e hora
-    const dataHora = new Date().toLocaleString('pt-BR');
-    doc.text(`Emitido em: ${dataHora}`, 50, startY + 50);
-
-    // QR Code ou código de autenticação
-    doc.fontSize(8)
-      .text(`Autenticação: ${payroll._id}`, 50, doc.page.height - 50);
-
-    // Finaliza o PDF
-    doc.end();
   } catch (error) {
     console.error('Erro ao gerar holerite:', error);
     res.status(500).json({
