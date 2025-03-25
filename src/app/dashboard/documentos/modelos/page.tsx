@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { 
   Table,
   TableBody,
@@ -52,9 +52,11 @@ import {
   Download,
   FilePlus2,
   Copy,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react'
 import Link from 'next/link'
+import axios from 'axios'
 
 // Dados de exemplo para tipos de documentos
 const documentTypes = [
@@ -66,84 +68,96 @@ const documentTypes = [
   { id: 6, name: "Outros", icon: FileText }
 ]
 
-// Dados de exemplo para modelos de documentos
-const documentTemplates = [
-  { 
-    id: 1, 
-    name: "Contrato de Trabalho Padrão", 
-    type: "Contrato de Trabalho",
-    description: "Modelo padrão de contrato por tempo indeterminado",
-    createdBy: "Admin",
-    createdAt: "10/02/2025",
-    updatedAt: "21/03/2025",
-    format: "docx",
-    variables: ["NOME_FUNCIONARIO", "CPF", "CARGO", "SALARIO", "DATA_ADMISSAO"]
-  },
-  { 
-    id: 2, 
-    name: "Contrato de Experiência", 
-    type: "Contrato de Trabalho",
-    description: "Modelo para contrato de experiência de 90 dias",
-    createdBy: "Admin",
-    createdAt: "12/02/2025",
-    updatedAt: "12/02/2025",
-    format: "docx",
-    variables: ["NOME_FUNCIONARIO", "CPF", "CARGO", "SALARIO", "DATA_ADMISSAO", "DATA_TERMINO"]
-  },
-  { 
-    id: 3, 
-    name: "Termo de Rescisão", 
-    type: "Documento de Demissão",
-    description: "Modelo para rescisão de contrato sem justa causa",
-    createdBy: "Maria RH",
-    createdAt: "05/03/2025",
-    updatedAt: "05/03/2025",
-    format: "docx",
-    variables: ["NOME_FUNCIONARIO", "CPF", "CARGO", "DATA_ADMISSAO", "DATA_DEMISSAO", "MOTIVO"]
-  },
-  { 
-    id: 4, 
-    name: "Ficha de Admissão", 
-    type: "Documento de Admissão",
-    description: "Formulário para registro de informações do novo funcionário",
-    createdBy: "João RH",
-    createdAt: "15/01/2025",
-    updatedAt: "18/03/2025",
-    format: "pdf",
-    variables: ["NOME_FUNCIONARIO", "CPF", "RG", "DATA_NASCIMENTO", "ENDERECO", "TELEFONE", "EMAIL"]
-  },
-  { 
-    id: 5, 
-    name: "Declaração de Vale Transporte", 
-    type: "Documento de Admissão",
-    description: "Declaração de opção pelo benefício do vale transporte",
-    createdBy: "Admin",
-    createdAt: "20/01/2025",
-    updatedAt: "20/01/2025",
-    format: "docx",
-    variables: ["NOME_FUNCIONARIO", "CPF", "VALOR_VT", "OPCAO"]
-  }
-]
+// Interface para modelo de documento da API
+interface ApiDocumentTemplate {
+  _id: string;
+  name: string;
+  type: string;
+  description: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  format: string;
+  filePath?: string;
+}
+
+// Interface para modelo de documento formatado
+interface DocumentTemplate {
+  _id: string;
+  name: string;
+  type: string;
+  description: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  format: string;
+  filePath?: string;
+}
 
 export default function ModelosDocumentosPage() {
-  const [templates, setTemplates] = useState(documentTemplates)
+  const [templates, setTemplates] = useState<DocumentTemplate[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState("Todos")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [selectedTemplate, setSelectedTemplate] = useState<{
-    id: number;
-    name: string;
-    type: string;
-    description: string;
-    createdBy: string;
-    createdAt: string;
-    updatedAt: string;
-    format: string;
-    variables: string[];
-  } | null>(null)
-  const [isViewingVariables, setIsViewingVariables] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Estados para novo modelo
+  const [newModelName, setNewModelName] = useState("")
+  const [newModelType, setNewModelType] = useState("Contrato de Trabalho")
+  const [newModelDescription, setNewModelDescription] = useState("")
+  const [newModelFile, setNewModelFile] = useState<File | null>(null)
+  const [selectedFileName, setSelectedFileName] = useState("")
   
-  // Filtra modelos com base nos filtros
+  // Carregar modelos ao iniciar
+  useEffect(() => {
+    fetchTemplates()
+  }, [])
+
+  // Mostrar mensagem de sucesso apenas por um tempo limitado
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess("")
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [success])
+
+  // Mostrar mensagem de erro apenas por um tempo limitado
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError("")
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [error])
+
+  // Buscar modelos da API
+  const fetchTemplates = async () => {
+    setIsLoading(true)
+    try {
+      const response = await axios.get('/api/document-models')
+      // Formatar as datas para o formato brasileiro
+      const formattedTemplates = response.data.map((template: ApiDocumentTemplate) => ({
+        ...template,
+        createdAt: new Date(template.createdAt).toLocaleDateString('pt-BR'),
+        updatedAt: new Date(template.updatedAt).toLocaleDateString('pt-BR')
+      }))
+      setTemplates(formattedTemplates)
+    } catch (error) {
+      console.error('Erro ao buscar modelos:', error)
+      setError("Não foi possível carregar os modelos de documentos.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Filtrar modelos com base nos filtros
   const filteredTemplates = templates.filter(template => {
     // Filtro por texto de busca
     const matchesSearch = 
@@ -157,81 +171,123 @@ export default function ModelosDocumentosPage() {
     return matchesSearch && matchesType;
   });
   
-  // Função para simular a visualização de um modelo
-  const handleViewTemplate = (template: { 
-    id: number; 
-    name: string; 
-    type: string; 
-    description: string; 
-    createdBy: string; 
-    createdAt: string; 
-    updatedAt: string; 
-    format: string; 
-    variables: string[]; 
-  }) => {
-    alert(`Visualizando modelo: ${template.name}`);
+  // Função para visualizar um modelo
+  const handleViewTemplate = async (template: DocumentTemplate) => {
+    if (!template.filePath) {
+      setError("Este modelo não possui arquivo para visualização.")
+      return
+    }
+
+    // Abrir o arquivo em uma nova aba
+    window.open(`/api/document-models/download/${template._id}`, '_blank')
   }
   
-  // Função para simular o download de um modelo
-  const handleDownloadTemplate = (template: { 
-    id: number; 
-    name: string; 
-    type: string; 
-    description: string; 
-    createdBy: string; 
-    createdAt: string; 
-    updatedAt: string; 
-    format: string; 
-    variables: string[]; 
-  }) => {
-    alert(`Baixando modelo: ${template.name}`);
-  }
-  
-  // Função para simular a duplicação de um modelo
-  const handleDuplicateTemplate = (template: { 
-    id: number; 
-    name: string; 
-    type: string; 
-    description: string; 
-    createdBy: string; 
-    createdAt: string; 
-    updatedAt: string; 
-    format: string; 
-    variables: string[]; 
-  }) => {
-    const newTemplate = {
-      ...template,
-      id: templates.length + 1,
-      name: `${template.name} (Cópia)`,
-      createdAt: new Date().toLocaleDateString('pt-BR'),
-      updatedAt: new Date().toLocaleDateString('pt-BR')
-    };
-    
-    setTemplates([...templates, newTemplate]);
-    alert(`Modelo duplicado: ${newTemplate.name}`);
-  }
-  
-  // Função para simular a exclusão de um modelo
-  const handleDeleteTemplate = (templateId: number) => {
-    if (window.confirm("Tem certeza que deseja excluir este modelo?")) {
-      setTemplates(templates.filter(t => t.id !== templateId));
+  // Função para fazer download de um modelo
+  const handleDownloadTemplate = async (template: DocumentTemplate) => {
+    try {
+      // Usar a API de download
+      window.location.href = `/api/document-models/download/${template._id}`
+    } catch (error) {
+      console.error('Erro ao baixar modelo:', error)
+      setError("Não foi possível baixar o modelo.")
     }
   }
   
-  // Função para visualizar variáveis do modelo
-  const handleViewVariables = (template: { 
-    id: number; 
-    name: string; 
-    type: string; 
-    description: string; 
-    createdBy: string; 
-    createdAt: string; 
-    updatedAt: string; 
-    format: string; 
-    variables: string[]; 
-  }) => {
-    setSelectedTemplate(template);
-    setIsViewingVariables(true);
+  // Função para duplicar um modelo
+  const handleDuplicateTemplate = async (template: DocumentTemplate) => {
+    try {
+      const response = await axios.post(`/api/document-models/duplicate/${template._id}`)
+      
+      // Adicionar o novo modelo à lista
+      const newTemplate = {
+        ...response.data,
+        createdAt: new Date(response.data.createdAt).toLocaleDateString('pt-BR'),
+        updatedAt: new Date(response.data.updatedAt).toLocaleDateString('pt-BR')
+      }
+      
+      setTemplates([...templates, newTemplate])
+      setSuccess(`Modelo "${template.name}" duplicado com sucesso.`)
+    } catch (error) {
+      console.error('Erro ao duplicar modelo:', error)
+      setError("Não foi possível duplicar o modelo.")
+    }
+  }
+  
+  // Função para excluir um modelo
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este modelo?")) {
+      try {
+        await axios.delete(`/api/document-models/${templateId}`)
+        setTemplates(templates.filter(t => t._id !== templateId))
+        setSuccess("Modelo excluído com sucesso.")
+      } catch (error) {
+        console.error('Erro ao excluir modelo:', error)
+        setError("Não foi possível excluir o modelo.")
+      }
+    }
+  }
+  
+  // Função para criar um novo modelo
+  const handleCreateTemplate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!newModelName || !newModelType || !newModelDescription || !newModelFile) {
+      setError("Por favor, preencha todos os campos.")
+      return
+    }
+    
+    setIsSubmitting(true)
+    
+    try {
+      // Criar um FormData para enviar o arquivo
+      const formData = new FormData()
+      formData.append('name', newModelName)
+      formData.append('type', newModelType)
+      formData.append('description', newModelDescription)
+      formData.append('file', newModelFile)
+      
+      // Enviar para a API
+      const response = await axios.post('/api/document-models', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      
+      // Adicionar o novo modelo à lista
+      const newTemplate = {
+        ...response.data,
+        createdAt: new Date(response.data.createdAt).toLocaleDateString('pt-BR'),
+        updatedAt: new Date(response.data.updatedAt).toLocaleDateString('pt-BR')
+      }
+      
+      setTemplates([...templates, newTemplate])
+      
+      // Limpar formulário
+      setNewModelName("")
+      setNewModelType("Contrato de Trabalho")
+      setNewModelDescription("")
+      setNewModelFile(null)
+      setSelectedFileName("")
+      
+      // Fechar diálogo
+      setIsDialogOpen(false)
+      
+      setSuccess("Modelo criado com sucesso!")
+    } catch (error) {
+      console.error('Erro ao criar modelo:', error)
+      setError("Não foi possível criar o modelo.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+  
+  // Manipulador para seleção de arquivo
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setNewModelFile(file)
+      setSelectedFileName(file.name)
+    }
   }
   
   // Obter ícone para tipo de documento
@@ -253,9 +309,29 @@ export default function ModelosDocumentosPage() {
         return <FileText className="h-5 w-5 text-gray-500" />;
     }
   }
+  
+  // Abrir o seletor de arquivo
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
 
   return (
     <div className="space-y-6 p-6">
+      {/* Mensagens de feedback */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          {error}
+        </div>
+      )}
+      
+      {success && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+          {success}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 mb-8">
         <Link href="/dashboard/documentos">
           <Button variant="outline" size="icon">
@@ -304,7 +380,12 @@ export default function ModelosDocumentosPage() {
       
       <Card>
         <CardContent className="p-0">
-          {filteredTemplates.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Carregando modelos...</span>
+            </div>
+          ) : filteredTemplates.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -318,7 +399,7 @@ export default function ModelosDocumentosPage() {
               </TableHeader>
               <TableBody>
                 {filteredTemplates.map((template) => (
-                  <TableRow key={template.id}>
+                  <TableRow key={template._id}>
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         {getFormatIcon(template.format)}
@@ -371,16 +452,13 @@ export default function ModelosDocumentosPage() {
                             <DropdownMenuItem onClick={() => handleDownloadTemplate(template)}>
                               <Download className="mr-2 h-4 w-4" /> Baixar
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleViewVariables(template)}>
-                              <FileText className="mr-2 h-4 w-4" /> Ver Variáveis
-                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDuplicateTemplate(template)}>
                               <Copy className="mr-2 h-4 w-4" /> Duplicar
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               className="text-red-600"
-                              onClick={() => handleDeleteTemplate(template.id)}
+                              onClick={() => handleDeleteTemplate(template._id)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" /> Excluir
                             </DropdownMenuItem>
@@ -413,7 +491,7 @@ export default function ModelosDocumentosPage() {
         </CardContent>
       </Card>
       
-      {/* Diálogo para criar novo modelo - Simplificado */}
+      {/* Diálogo para criar novo modelo */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -423,15 +501,23 @@ export default function ModelosDocumentosPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <form onSubmit={handleCreateTemplate} className="space-y-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Nome do Modelo</label>
-              <Input placeholder="Ex: Contrato de Trabalho Padrão" />
+              <Input 
+                placeholder="Ex: Contrato de Trabalho Padrão" 
+                value={newModelName}
+                onChange={(e) => setNewModelName(e.target.value)}
+                required
+              />
             </div>
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Tipo de Documento</label>
-              <Select defaultValue="Contrato de Trabalho">
+              <Select 
+                value={newModelType} 
+                onValueChange={setNewModelType}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
@@ -449,103 +535,74 @@ export default function ModelosDocumentosPage() {
               <label className="text-sm font-medium">Descrição</label>
               <Textarea 
                 placeholder="Descreva a finalidade deste modelo..."
+                value={newModelDescription}
+                onChange={(e) => setNewModelDescription(e.target.value)}
+                required
               />
             </div>
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Arquivo de Modelo</label>
-              <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50">
-                <Plus className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                <p className="text-sm text-muted-foreground">
-                  Arraste um arquivo ou clique para selecionar
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Formatos suportados: DOCX, PDF (max. 5MB)
-                </p>
+              <div 
+                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50"
+                onClick={triggerFileInput}
+              >
+                {selectedFileName ? (
+                  <>
+                    <FileText className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+                    <p className="text-sm font-medium">{selectedFileName}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Clique para mudar o arquivo
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm text-muted-foreground">
+                      Arraste um arquivo ou clique para selecionar
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Formatos suportados: DOCX, PDF (max. 5MB)
+                    </p>
+                  </>
+                )}
                 <Input 
                   type="file" 
                   className="hidden" 
+                  ref={fileInputRef}
                   accept=".docx,.pdf"
+                  onChange={handleFileSelect}
+                  required
                 />
               </div>
             </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => {
-              alert("Modelo criado com sucesso!");
-              setIsDialogOpen(false);
-            }}>
-              Criar Modelo
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Diálogo para visualizar variáveis */}
-      <Dialog open={isViewingVariables} onOpenChange={setIsViewingVariables}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Variáveis do Modelo</DialogTitle>
-            <DialogDescription>
-              {selectedTemplate?.name}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <p className="text-sm mb-4">
-              Este modelo utiliza as seguintes variáveis que serão substituídas pelos dados do funcionário:
-            </p>
             
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Variável</TableHead>
-                    <TableHead>Exemplo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedTemplate?.variables.map((variable: string) => (
-                    <TableRow key={variable}>
-                      <TableCell className="font-mono text-sm">
-                        {`{{${variable}}}`}
-                      </TableCell>
-                      <TableCell>
-                        {variable === 'NOME_FUNCIONARIO' ? 'João da Silva' :
-                         variable === 'CPF' ? '123.456.789-00' :
-                         variable === 'CARGO' ? 'Analista de TI' :
-                         variable === 'SALARIO' ? 'R$ 5.000,00' :
-                         variable === 'DATA_ADMISSAO' ? '01/04/2025' :
-                         variable === 'DATA_TERMINO' ? '30/06/2025' :
-                         variable === 'DATA_DEMISSAO' ? '15/04/2025' :
-                         variable === 'MOTIVO' ? 'Sem justa causa' :
-                         variable === 'RG' ? '12.345.678-9' :
-                         variable === 'DATA_NASCIMENTO' ? '01/01/1990' :
-                         variable === 'ENDERECO' ? 'Rua Exemplo, 123' :
-                         variable === 'TELEFONE' ? '(11) 91234-5678' :
-                         variable === 'EMAIL' ? 'email@exemplo.com' :
-                         variable === 'VALOR_VT' ? 'R$ 220,00' :
-                         variable === 'OPCAO' ? 'Aceito' :
-                         'Exemplo não disponível'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button onClick={() => setIsViewingVariables(false)}>
-              Fechar
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsDialogOpen(false)}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  'Criar Modelo'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
+        </Dialog>
+      </div>
+    )
+  }
