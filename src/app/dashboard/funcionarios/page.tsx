@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
@@ -80,17 +80,23 @@ export default function EmployeesPage() {
     isLoading,
     error,
   } = useQuery<IWorker[]>({
-    queryKey: ["workers"],
+    queryKey: ['workers'],
     queryFn: async () => {
-      const response = await axios.get("/api/workers");
-      return response.data.map((worker: IWorker) => ({
+      const response = await axios.get('/api/workers')
+      // Mapear os dados e convertê-los para o formato correto
+      const mappedWorkers = response.data.map((worker: IWorker) => ({
         ...worker,
         nascimento: new Date(worker.nascimento),
         admissao: new Date(worker.admissao),
-      }));
+      }))
+      
+      // Ordenar alfabeticamente pelo nome
+      return mappedWorkers.sort((a: IWorker, b: IWorker) => 
+        a.name.localeCompare(b.name, 'pt-BR')
+      );
     },
     staleTime: 5000,
-  });
+  })
 
   // Delete worker mutation
   const deleteWorker = useMutation({
@@ -122,22 +128,22 @@ export default function EmployeesPage() {
     },
   });
 
-  // Basic search filtering
-  const filteredWorkers = workers.filter((worker) => {
-    if (!searchTerm.trim()) return true;
-
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      worker.name?.toLowerCase().includes(searchLower) ||
-      worker.email?.toLowerCase().includes(searchLower) ||
-      worker.role?.toLowerCase().includes(searchLower)
-    );
-  });
-
-  // Format date for display
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString("pt-BR");
-  };
+   // Ordenar workers filtrados pelo nome
+   const filteredWorkers = React.useMemo(() => {
+    const filtered = workers.filter(worker => {
+      if (!searchTerm.trim()) return true;
+      
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        worker.name?.toLowerCase().includes(searchLower) ||
+        worker.email?.toLowerCase().includes(searchLower) ||
+        worker.role?.toLowerCase().includes(searchLower)
+      )
+    });
+    
+    // Já está ordenado desde a consulta, mas mantemos aqui para segurança
+    return filtered.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  }, [workers, searchTerm]);
 
   // Format currency without limiting decimals
   const formatSalary = (value: number) => {
@@ -147,6 +153,11 @@ export default function EmployeesPage() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value);
+  };
+
+  // Format date to Brazilian format
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat("pt-BR").format(date);
   };
 
   // Toggle salary visibility
