@@ -291,18 +291,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             // Garantir que o tipo de contrato é válido
             const contractType = worker.contract === 'PJ' ? 'PJ' : 'CLT';
             
-            // IMPORTANTE: Converter o salário de string para número
-            const salarioStr = worker.salary || "0";
-            let baseSalary = parseSalary(salarioStr);
-            
-            console.log(`Salário convertido para ${worker.name}: ${salarioStr} => ${baseSalary}`);
-            
-            // Verificar se o salário é válido após a conversão
-            if (baseSalary <= 0) {
-              console.warn(`Salário inválido para ${worker.name}: ${salarioStr} (convertido para ${baseSalary})`);
-              // Definir um valor padrão mínimo, usando let ao invés de const
-              baseSalary = 3000; // *** LINHA CORRIGIDA ***
-            }
+                      // IMPORTANTE: Converter o salário de string para número
+           // Verifica se o salário está em 'salary' ou 'salario'
+           const salarioStr = worker.salary || worker.salario || "0";
+           let baseSalary = parseSalary(salarioStr);
+           
+           console.log(`Salário convertido para ${worker.name}: ${salarioStr} => ${baseSalary}`);
+           
+           // Verificar se o salário é válido após a conversão
+           if (baseSalary <= 0) {
+             console.warn(`Salário inválido para ${worker.name}: ${salarioStr} (convertido para ${baseSalary})`);
+             
+             // Tentar obter o valor numérico removendo todos os caracteres não numéricos
+             const numericValue = salarioStr.replace(/\D/g, '');
+             if (numericValue && numericValue !== '0') {
+               // Se ainda houver dígitos, converta para número e divida por 100 para lidar com centavos
+               baseSalary = parseInt(numericValue) / 100;
+               console.log(`Tentativa alternativa de conversão: ${baseSalary}`);
+             } else {
+               // Adicionar um console.log para depuração
+               console.error(`Não foi possível determinar o salário para ${worker.name}.`);
+               console.log('Conteúdo do objeto worker:', JSON.stringify(worker, null, 2));
+             }
+           }
             
             // Valores adicionais
             const overtimePay = 0;
