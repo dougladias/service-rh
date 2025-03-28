@@ -415,9 +415,9 @@ const TimeTrackingPage: React.FC = () => {
     refetchInterval: isLogModalOpen ? 1000 : false, // Poll every second if modal is open
   });
 
-  // Fetch all workers
+  // Buscar todos os funcionários
   const {
-    data: workers = [],
+    data: workersData = [],
     isLoading,
     error,
   } = useQuery<IWorker[]>({
@@ -433,17 +433,26 @@ const TimeTrackingPage: React.FC = () => {
     staleTime: 5000,
   });
 
-  // Get the currently selected worker from the latest data
+  // Ordenar os trabalhadores por nome - função useMemo para manter performance
+    const workers = React.useMemo(() => {
+      return [...workersData].sort((a, b) => 
+        a.name.localeCompare(b.name, 'pt-BR')
+      );
+    }, [workersData]);
+  
+    // Obter o funcionário selecionado a partir dos dados mais recentes
   const selectedWorker = selectedWorkerId
     ? workers.find((w) => w._id === selectedWorkerId)
     : null;
 
-  // Filter workers based on search term
-  const filteredWorkers = workers.filter(
-    (worker) =>
+  // Filtrar funcionários com base no termo de busca
+  const filteredWorkers = React.useMemo(() => {
+    return workers.filter(
+      (worker: IWorker) =>
       worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       worker.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    );
+  }, [workers, searchTerm]);
 
   // Update worker (for check-in, check-out, faltou)
   const updateWorker = useMutation({
@@ -597,3 +606,4 @@ const TimeTrackingPage: React.FC = () => {
 };
 
 export default TimeTrackingPage;
+
