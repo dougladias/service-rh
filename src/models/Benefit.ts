@@ -1,0 +1,93 @@
+// src/models/Benefit.ts
+import mongoose, { Schema, Document } from "mongoose";
+
+// Interface para o tipo de benefício
+export interface IBenefitType extends Document {
+  name: string;
+  description: string;
+  hasDiscount: boolean;
+  discountPercentage?: number;
+  defaultValue: number;
+  status?: 'active' | 'inactive';
+}
+
+// Interface para benefícios do funcionário
+export interface IEmployeeBenefit extends Document {
+  employeeId: mongoose.Types.ObjectId;
+  benefitTypeId: mongoose.Types.ObjectId;
+  value: number;
+  status: 'active' | 'inactive';
+  startDate: Date;
+  endDate?: Date;
+}
+
+// Schema para Tipos de Benefícios
+const BenefitTypeSchema: Schema = new Schema({
+  name: { 
+    type: String, 
+    required: true,
+    trim: true,
+    unique: true
+  },
+  description: { 
+    type: String, 
+    required: true 
+  },
+  hasDiscount: { 
+    type: Boolean, 
+    default: false 
+  },
+  discountPercentage: { 
+    type: Number,
+    min: 0,
+    max: 100
+  },
+  defaultValue: { 
+    type: Number, 
+    required: true,
+    min: 0 
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive'],
+    default: 'active'
+  }
+}, { timestamps: true });
+
+// Schema para Benefícios dos Funcionários
+const EmployeeBenefitSchema: Schema = new Schema({
+  employeeId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Worker', 
+    required: true 
+  },
+  benefitTypeId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'BenefitType', 
+    required: true 
+  },
+  value: { 
+    type: Number, 
+    required: true,
+    min: 0 
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive'],
+    default: 'active'
+  },
+  startDate: { 
+    type: Date, 
+    default: Date.now 
+  },
+  endDate: { 
+    type: Date 
+  }
+}, { timestamps: true });
+
+// Criar modelos
+export const BenefitType = mongoose.models.BenefitType || mongoose.model<IBenefitType>('BenefitType', BenefitTypeSchema);
+export const EmployeeBenefit = mongoose.models.EmployeeBenefit || mongoose.model<IEmployeeBenefit>('EmployeeBenefit', EmployeeBenefitSchema);
+
+const Benefits = { BenefitType, EmployeeBenefit };
+export default Benefits;
