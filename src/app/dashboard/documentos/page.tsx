@@ -125,6 +125,7 @@ export default function DocumentosPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   
   const [newDocument, setNewDocument] = useState({
     name: "",
@@ -144,6 +145,7 @@ export default function DocumentosPage() {
         setEmployees(response.data);
       } catch (error) {
         console.error('Erro ao buscar funcionários:', error);
+        setError('Falha ao carregar funcionários');
       }
     };
 
@@ -154,6 +156,7 @@ export default function DocumentosPage() {
         setDocuments(response.data);
       } catch (error) {
         console.error('Erro ao buscar documentos:', error);
+        setError('Falha ao carregar documentos');
       } finally {
         setLoading(false);
       }
@@ -218,22 +221,31 @@ export default function DocumentosPage() {
   
   // Função para visualizar documento
   const handleViewDocument = (doc: Document) => {
-    window.open(doc.path, '_blank');
-  }
+    try {
+      console.log('Visualizando documento:', doc._id);
+      // Use a API de download em vez do caminho direto
+      window.open(`/api/documents/download/${doc._id}`, '_blank');
+    } catch (error) {
+      console.error('Erro ao visualizar documento:', error);
+      setError('Não foi possível visualizar o documento.');
+    }
+  };
   
   // Função para baixar documento
   const handleDownloadDocument = (doc: Document) => {
-    const a = document.createElement('a');
-    a.href = doc.path;
-    a.download = doc.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
+    try {
+      console.log('Baixando documento:', doc._id);
+      // Use a API de download com parâmetro para forçar o download
+      window.open(`/api/documents/download/${doc._id}?download=true`, '_blank');
+    } catch (error) {
+      console.error('Erro ao baixar documento:', error);
+      setError('Não foi possível baixar o documento.');
+    }
+  };
   
   // Função para excluir documento
   const handleDeleteDocument = async (docId: string) => {
-    console.log('ID do documento:', docId); // Verifique o ID aqui
+    console.log('ID do documento:', docId);
     if (!confirm('Tem certeza que deseja excluir este documento?')) return;
   
     try {
@@ -241,18 +253,19 @@ export default function DocumentosPage() {
       setDocuments(documents.filter(doc => doc._id !== docId));
     } catch (error) {
       console.error('Erro ao excluir documento:', error);
-      alert('Falha ao excluir o documento.');
+      setError('Falha ao excluir o documento.');
     }
   }
   
   // Função para fazer upload de novo documento
   const handleUploadDocument = async () => {
     if (!selectedFile || !newDocument.type || !newDocument.employeeId) {
-      alert('Por favor, preencha todos os campos obrigatórios e selecione um arquivo.');
+      setError('Por favor, preencha todos os campos obrigatórios e selecione um arquivo.');
       return;
     }
     
     setUploading(true);
+    setError(null);
     
     try {
       const formData = new FormData();
@@ -285,7 +298,7 @@ export default function DocumentosPage() {
       alert('Documento enviado com sucesso!');
     } catch (error) {
       console.error('Erro ao enviar documento:', error);
-      alert('Falha ao enviar o documento. Por favor, tente novamente.');
+      setError('Falha ao enviar o documento. Por favor, tente novamente.');
     } finally {
       setUploading(false);
     }
@@ -313,6 +326,19 @@ export default function DocumentosPage() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Mensagem de erro */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+          {error}
+          <button 
+            className="absolute top-0 right-0 px-4 py-3"
+            onClick={() => setError(null)}
+          >
+            <span>&times;</span>
+          </button>
+        </div>
+      )}
+      
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Gestão de Documentos</h1>
@@ -533,7 +559,7 @@ export default function DocumentosPage() {
         </TabsContent>
       </Tabs>
       
-      {/* Diálogo para upload de documento - seguindo exatamente o layout da imagem */}
+      {/* Diálogo para upload de documento */}
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -666,16 +692,15 @@ export default function DocumentosPage() {
                   <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
                   Enviando...
                 </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Enviar Documento
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
+              ) : (<>
+                <Upload className="mr-2 h-4 w-4" />
+                Enviar Documento
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+)
 }
