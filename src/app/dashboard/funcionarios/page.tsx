@@ -1,31 +1,24 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { IWorker } from '@/models/Worker'
-import {  
-  Edit, 
-  Trash2,
-  Search,
-  Eye,
-  EyeOff,
-  Users
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { motion, AnimatePresence } from 'framer-motion'
-import EditWorkerModal from '@/components/ui/EditWorkModal'
-import AddWorkerModal from '@/components/ui/AddWorkerModal'
-import { ButtonGlitchBrightness } from '@/components/ui/ButtonGlitch'
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { IWorker } from "@/models/Worker";
+import { Edit, Trash2, Search, Eye, EyeOff, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import EditWorkerModal from "@/components/ui/EditWorkModal";
+import AddWorkerModal from "@/components/ui/AddWorkerModal";
+import { ButtonGlitchBrightness } from "@/components/ui/ButtonGlitch";
 
 // Animation variants
 const containerVariants = {
@@ -33,19 +26,19 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.07
-    }
-  }
-}
+      staggerChildren: 0.07,
+    },
+  },
+};
 
 const itemVariants = {
   hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
-    transition: { type: "spring", stiffness: 300, damping: 24 }
-  }
-}
+    transition: { type: "spring", stiffness: 300, damping: 24 },
+  },
+};
 
 const tableRowVariants = {
   hidden: { opacity: 0, x: -20 },
@@ -55,29 +48,31 @@ const tableRowVariants = {
     transition: {
       delay: i * 0.05,
       duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1.0]
-    }
+      ease: [0.25, 0.1, 0.25, 1.0],
+    },
   }),
-  exit: { opacity: 0, x: 20, transition: { duration: 0.2 } }
-}
+  exit: { opacity: 0, x: 20, transition: { duration: 0.2 } },
+};
 
 export default function EmployeesPage() {
-  const queryClient = useQueryClient()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [visibleSalaries, setVisibleSalaries] = useState<Record<string, boolean>>({})
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [selectedWorker, setSelectedWorker] = useState<IWorker | null>(null)
-  const [animateIcons, setAnimateIcons] = useState(false)
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [visibleSalaries, setVisibleSalaries] = useState<
+    Record<string, boolean>
+  >({});
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedWorker, setSelectedWorker] = useState<IWorker | null>(null);
+  const [animateIcons, setAnimateIcons] = useState(false);
 
   // Trigger icon animations periodically
   useEffect(() => {
     const interval = setInterval(() => {
-      setAnimateIcons(true)
-      setTimeout(() => setAnimateIcons(false), 1000)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
+      setAnimateIcons(true);
+      setTimeout(() => setAnimateIcons(false), 1000);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Data fetching
   const {
@@ -85,28 +80,28 @@ export default function EmployeesPage() {
     isLoading,
     error,
   } = useQuery<IWorker[]>({
-    queryKey: ['workers'],
+    queryKey: ["workers"],
     queryFn: async () => {
-      const response = await axios.get('/api/workers')
+      const response = await axios.get("/api/workers");
       return response.data.map((worker: IWorker) => ({
         ...worker,
         nascimento: new Date(worker.nascimento),
         admissao: new Date(worker.admissao),
-      }))
+      }));
     },
     staleTime: 5000,
-  })
+  });
 
   // Delete worker mutation
   const deleteWorker = useMutation({
     mutationFn: (workerId: string) =>
-      axios.delete('/api/workers', { data: { id: workerId } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workers'] }),
+      axios.delete("/api/workers", { data: { id: workerId } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workers"] }),
     onError: (err) => {
-      console.error('Failed to delete worker', err)
-      alert('Failed to delete worker')
+      console.error("Failed to delete worker", err);
+      alert("Failed to delete worker");
     },
-  })
+  });
 
   // Update worker details mutation
   const updateWorkerDetails = useMutation({
@@ -114,106 +109,106 @@ export default function EmployeesPage() {
       workerId,
       updates,
     }: {
-      workerId: string
-      updates: Partial<IWorker>
-    }) => axios.put('/api/workers', { id: workerId, updates }),
+      workerId: string;
+      updates: Partial<IWorker>;
+    }) => axios.put("/api/workers", { id: workerId, updates }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workers'] })
-      setIsEditModalOpen(false)
+      queryClient.invalidateQueries({ queryKey: ["workers"] });
+      setIsEditModalOpen(false);
     },
     onError: (err) => {
-      console.error('Failed to update worker details', err)
-      alert('Failed to update worker details')
+      console.error("Failed to update worker details", err);
+      alert("Failed to update worker details");
     },
-  })
+  });
 
   // Basic search filtering
-  const filteredWorkers = workers.filter(worker => {
-    if (!searchTerm.trim()) return true
-    
-    const searchLower = searchTerm.toLowerCase()
+  const filteredWorkers = workers.filter((worker) => {
+    if (!searchTerm.trim()) return true;
+
+    const searchLower = searchTerm.toLowerCase();
     return (
       worker.name?.toLowerCase().includes(searchLower) ||
       worker.email?.toLowerCase().includes(searchLower) ||
       worker.role?.toLowerCase().includes(searchLower)
-    )
-  })
+    );
+  });
 
   // Format date for display
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('pt-BR')
-  }
-  
+    return new Date(date).toLocaleDateString("pt-BR");
+  };
+
   // Format currency without limiting decimals
   const formatSalary = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(value)
-  }
-  
+    }).format(value);
+  };
+
   // Toggle salary visibility
   const toggleSalaryVisibility = (workerId: string) => {
-    setVisibleSalaries(prev => ({
+    setVisibleSalaries((prev) => ({
       ...prev,
-      [workerId]: !prev[workerId]
-    }))
-  }
+      [workerId]: !prev[workerId],
+    }));
+  };
 
   // Handlers
   const handleDelete = (workerId: string) => {
-    if (confirm('Tem certeza que quer deletar esse funcionário?')) {
-      deleteWorker.mutate(workerId)
+    if (confirm("Tem certeza que quer deletar esse funcionário?")) {
+      deleteWorker.mutate(workerId);
     }
-  }
+  };
 
   const handleEdit = (workerId: string) => {
-    const worker = workers.find((w) => w._id === workerId)
+    const worker = workers.find((w) => w._id === workerId);
     if (worker) {
-      setSelectedWorker(worker)
-      setIsEditModalOpen(true)
+      setSelectedWorker(worker);
+      setIsEditModalOpen(true);
     }
-  }
+  };
 
   const handleSave = (updatedWorker: {
-    _id: string
-    name: string
-    cpf: string
-    nascimento: string
-    admissao: string
-    salario: string
-    numero: string
-    email: string
-    address: string
-    contract: string
-    role: string
+    _id: string;
+    name: string;
+    cpf: string;
+    nascimento: string;
+    admissao: string;
+    salario: string;
+    numero: string;
+    email: string;
+    address: string;
+    contract: string;
+    role: string;
   }) => {
     // Convert the simplified worker to IWorker format for the mutation
     const workerToUpdate: Partial<IWorker> = {
       ...updatedWorker,
       nascimento: new Date(updatedWorker.nascimento),
       admissao: new Date(updatedWorker.admissao),
-    }
+    };
 
     updateWorkerDetails.mutate({
       workerId: updatedWorker._id,
       updates: workerToUpdate,
-    })
-  }
+    });
+  };
 
   const handleCloseEditModal = () => {
-    setIsEditModalOpen(false)
-    setSelectedWorker(null)
-  }
+    setIsEditModalOpen(false);
+    setSelectedWorker(null);
+  };
 
   const handleCloseAddModal = () => {
-    setIsAddModalOpen(false)
-  }
+    setIsAddModalOpen(false);
+  };
 
   return (
-    <motion.div 
+    <motion.div
       className="space-y-6"
       initial="hidden"
       animate="visible"
@@ -224,9 +219,10 @@ export default function EmployeesPage() {
         <motion.div variants={itemVariants}>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
             <motion.div
-              animate={animateIcons ? 
-                { scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] } : 
-                { scale: 1, rotate: 0 }
+              animate={
+                animateIcons
+                  ? { scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }
+                  : { scale: 1, rotate: 0 }
               }
               transition={{ duration: 0.5 }}
             >
@@ -234,12 +230,14 @@ export default function EmployeesPage() {
             </motion.div>
             Funcionários
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">Gerenciamento de funcionários</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Gerenciamento de funcionários
+          </p>
         </motion.div>
-        
+
         <div className="flex items-center gap-4">
           {/* Animated Search Bar */}
-          <motion.div 
+          <motion.div
             className="relative"
             variants={itemVariants}
             whileHover={{ scale: 1.02 }}
@@ -264,7 +262,7 @@ export default function EmployeesPage() {
           </motion.div>
 
           {/* Animated Add Employee Button */}
-            <motion.div variants={itemVariants}>
+          <motion.div variants={itemVariants}>
             <ButtonGlitchBrightness
               text="Adicionar novo Funcionário"
               onClick={() => setIsAddModalOpen(true)}
@@ -272,18 +270,20 @@ export default function EmployeesPage() {
               disabled={isLoading}
               className="px-4 py-2"
             />
-            </motion.div>
+          </motion.div>
         </div>
       </div>
 
       {/* Employee Count Card */}
-      <motion.div 
+      <motion.div
         variants={itemVariants}
         className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total de funcionários</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Total de funcionários
+            </p>
             <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
               <motion.span
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -295,14 +295,14 @@ export default function EmployeesPage() {
             </h3>
           </div>
           <motion.div
-            animate={{ 
+            animate={{
               rotate: [0, 10, 0, -10, 0],
               scale: [1, 1.1, 1, 1.1, 1],
             }}
-            transition={{ 
-              duration: 2, 
+            transition={{
+              duration: 2,
               repeat: Infinity,
-              repeatDelay: 5
+              repeatDelay: 5,
             }}
             className="bg-cyan-100 dark:bg-cyan-900/30 p-3 rounded-full"
           >
@@ -311,10 +311,10 @@ export default function EmployeesPage() {
         </div>
         <div className="mt-2">
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-            <motion.div 
+            <motion.div
               className="bg-cyan-500 h-2.5 rounded-full"
               initial={{ width: 0 }}
-              animate={{ width: '100%' }}
+              animate={{ width: "100%" }}
               transition={{ duration: 1, delay: 0.3 }}
             />
           </div>
@@ -323,7 +323,7 @@ export default function EmployeesPage() {
 
       {/* Loading State */}
       {isLoading ? (
-        <motion.div 
+        <motion.div
           className="py-8 flex justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -351,25 +351,26 @@ export default function EmployeesPage() {
           </div>
         </motion.div>
       ) : error ? (
-        <motion.div 
+        <motion.div
           className="py-4 text-center text-red-500"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring" }}
         >
           <motion.div
-            animate={{ 
+            animate={{
               scale: [1, 1.05, 1],
-              rotate: [0, 2, 0, -2, 0] 
+              rotate: [0, 2, 0, -2, 0],
             }}
             transition={{ duration: 2, repeat: Infinity }}
             className="inline-block"
           >
             ⚠️
-          </motion.div> Erro ao carregar funcionários
+          </motion.div>{" "}
+          Erro ao carregar funcionários
         </motion.div>
       ) : (
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg overflow-hidden shadow-sm"
         >
@@ -394,8 +395,8 @@ export default function EmployeesPage() {
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.3 }}
                     >
-                      {searchTerm 
-                        ? "Nenhum funcionário encontrado com esse termo de busca." 
+                      {searchTerm
+                        ? "Nenhum funcionário encontrado com esse termo de busca."
                         : "Nenhum funcionário cadastrado."}
                     </motion.div>
                   </TableCell>
@@ -404,90 +405,113 @@ export default function EmployeesPage() {
                 <AnimatePresence>
                   {filteredWorkers.map((worker, index) => (
                     <motion.tr
-                      key={worker._id as React.Key || `worker-${index}`}
-                      className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40"
+                      key={(worker._id as React.Key) || `worker-${index}`}
+                      className="border-b dark:border-gray-700"
                       custom={index}
                       variants={tableRowVariants}
                       initial="hidden"
                       animate="visible"
                       exit="exit"
                       layout
-                      whileHover={{ 
+                      whileHover={{
                         backgroundColor: "rgba(0, 0, 0, 0.03)",
-                        transition: { duration: 0.1 }
+                        transition: { duration: 0.1 },
                       }}
                     >
-                      <TableCell className="font-medium">{worker.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {worker.name}
+                      </TableCell>
                       <TableCell>{worker.role}</TableCell>
                       <TableCell>{worker.email}</TableCell>
                       <TableCell className="relative">
                         <div className="flex items-center space-x-2">
-                          <motion.span 
-                            className={visibleSalaries[worker._id as string] ? "" : "filter blur-md select-none"}
+                          <motion.span
+                            className={cn(
+                              "transition-colors text-black dark:text-white",
+                              visibleSalaries[worker._id as string]
+                                ? "text-emerald-600 dark:text-cyan-400"
+                                : "filter blur-md select-none"
+                            )}
                             animate={
-                              visibleSalaries[worker._id as string] 
-                                ? { scale: [1.05, 1], color: ["#10b981", "#374151"] } 
+                              visibleSalaries[worker._id as string]
+                                ? { scale: [1.05, 1] }
                                 : {}
                             }
                             transition={{ duration: 0.3 }}
                           >
-                            {worker.salario ? 
-                              formatSalary(parseFloat(worker.salario)) : 
-                              '-'}
+                            {worker.salario
+                              ? formatSalary(parseFloat(worker.salario))
+                              : "-"}
                           </motion.span>
-                          <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.95 }}>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
+                          <motion.div
+                            whileHover={{ scale: 1.2 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-6 w-6"
-                              onClick={() => toggleSalaryVisibility(worker._id as string)}
+                              onClick={() =>
+                                toggleSalaryVisibility(worker._id as string)
+                              }
                             >
-                              {visibleSalaries[worker._id as string] ? 
-                                <EyeOff size={16} className="text-gray-500" /> : 
-                                <Eye size={16} className="text-gray-500" />}
+                              {visibleSalaries[worker._id as string] ? (
+                                <EyeOff size={16} className="text-gray-500" />
+                              ) : (
+                                <Eye size={16} className="text-gray-500" />
+                              )}
                             </Button>
                           </motion.div>
                         </div>
                       </TableCell>
                       <TableCell>{formatDate(worker.admissao)}</TableCell>
                       <TableCell>
-                        <motion.span 
+                        <motion.span
                           className={cn(
                             "px-2 py-1 rounded-full text-xs font-medium",
-                            worker.status === 'inactive' 
-                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" 
+                            worker.status === "inactive"
+                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
                               : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
                           )}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           animate={
-                            worker.status !== 'inactive' 
-                              ? { y: [0, -2, 0], transition: { repeat: Infinity, repeatDelay: 3 } } 
+                            worker.status !== "inactive"
+                              ? {
+                                  y: [0, -2, 0],
+                                  transition: {
+                                    repeat: Infinity,
+                                    repeatDelay: 3,
+                                  },
+                                }
                               : {}
                           }
                         >
-                          {worker.status === 'inactive' ? 'Inativo' : 'Ativo'}
+                          {worker.status === "inactive" ? "Inativo" : "Ativo"}
                         </motion.span>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                            <Button 
-                              variant="outline" 
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <Button
+                              variant="outline"
                               size="icon"
                               onClick={() => handleEdit(worker._id as string)}
                             >
                               <Edit size={16} />
                             </Button>
                           </motion.div>
-                          <motion.div 
-                            whileHover={{ scale: 1.1, opacity: 1 }} 
+                          <motion.div
+                            whileHover={{ scale: 1.1, opacity: 1 }}
                             whileTap={{ scale: 0.95 }}
                             initial={{ opacity: 1 }}
                           >
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
+                            <Button
+                              variant="outline"
+                              size="icon"
                               className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                               onClick={() => handleDelete(worker._id as string)}
                             >
@@ -516,7 +540,7 @@ export default function EmployeesPage() {
               _id: selectedWorker._id as string,
               nascimento: selectedWorker.nascimento.toISOString().split("T")[0],
               admissao: selectedWorker.admissao.toISOString().split("T")[0],
-              ajuda: selectedWorker.ajuda || '', // Provide default empty string for ajuda
+              ajuda: selectedWorker.ajuda || "", // Provide default empty string for ajuda
             }}
             onSave={handleSave}
           />
@@ -525,9 +549,12 @@ export default function EmployeesPage() {
 
       <AnimatePresence>
         {isAddModalOpen && (
-          <AddWorkerModal isOpen={isAddModalOpen} onClose={handleCloseAddModal} />
+          <AddWorkerModal
+            isOpen={isAddModalOpen}
+            onClose={handleCloseAddModal}
+          />
         )}
       </AnimatePresence>
     </motion.div>
-  )
+  );
 }

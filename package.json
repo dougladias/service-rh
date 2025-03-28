@@ -1,5 +1,6 @@
 {
-  "name": "rh-system",
+  "name": "globoo-rh-service",
+  "author": "Douglas/Pedro/Cleverton/Weverton",
   "version": "0.1.0",
   "private": true,
   "scripts": {

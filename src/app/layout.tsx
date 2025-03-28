@@ -8,8 +8,8 @@ import Providers from './providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'RH Control',
-  description: 'Sistema de Gestão de Recursos Humanos',
+  title: 'Globoo RH',
+  description: 'Sistema de Gestão de Recursos Humanos da Globoo',
 }
 
 export default function RootLayout({

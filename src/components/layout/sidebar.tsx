@@ -253,7 +253,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 bt-black h-full w-64 bg-gray-300 dark:bg-gray-800 border-r shadow-sm z-40">
+    <aside className="fixed left-0 bt-black h-full w-64 bg-gray-100 dark:bg-gray-800 border-r shadow-sm z-40">
       <div className="p-4">
         <div className="flex justify-center">
           {isMounted && (

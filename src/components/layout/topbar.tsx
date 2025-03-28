@@ -26,7 +26,7 @@ export default function Topbar() {
     }
 
     return (
-        <header className="sticky top-0 z-50 bg-gray-300 dark:bg-gray-800 border-b shadow-sm h-16 flex items-center justify-between px-6">
+        <header className="sticky top-0 z-50 bg-gray-100 dark:bg-gray-800 border-b shadow-sm h-16 flex items-center justify-between px-6">
             <div className="text-gray-700 dark:text-gray-300 text-[0.9rem] font-medium">
                 Bem-vindo de volta! Hoje é <span className="text-cyan-500">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
                 
