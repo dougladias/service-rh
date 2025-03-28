@@ -21,7 +21,6 @@ interface EditWorkerModalProps {
     nascimento: string;
     admissao: string;
     salario: string;
-    // Campo mapeado para o modelo (ajuda)
     ajuda: string;
     numero: string;
     email: string;
@@ -45,13 +44,35 @@ interface EditWorkerModalProps {
   }) => void;
 }
 
+// Função para ajustar o fuso horário das datas
+const adjustDateForTimezone = (dateString: string): string => {
+  if (!dateString) return '';
+  
+  // Criar objeto Date a partir da string
+  const date = new Date(dateString);
+  
+  // Verificar se é uma data válida
+  if (isNaN(date.getTime())) {
+    console.warn('Data inválida:', dateString);
+    return dateString;
+  }
+  
+  // Ajustar para o fuso horário local para evitar deslocamento de dia
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  // Retornar no formato YYYY-MM-DD para input type="date"
+  return `${year}-${month}-${day}`;
+};
+
 const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
   isOpen,
   onClose,
   worker,
   onSave,
 }) => {
-  // Estado para os campos do formulário, usando "ajuda" (conforme o modelo)
+  // Estado para os campos do formulário
   const [formData, setFormData] = useState<{
     _id: string;
     name: string;
@@ -80,33 +101,47 @@ const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
     role: "",
   });
 
-const [didInitialize, setDidInitialize] = useState(false);
+  const [didInitialize, setDidInitialize] = useState(false);
 
-useEffect(() => {
-  // Carrega os dados somente na abertura do modal e não a cada renderização
-  if (worker && isOpen && !didInitialize) {
-    setFormData({
-      _id: worker._id || "",
-      name: worker.name || "",
-      cpf: worker.cpf || "",
-      nascimento: worker.nascimento || "",
-      admissao: worker.admissao || "",
-      salario: worker.salario || "",
-      ajuda: worker.ajuda || "",
-      numero: worker.numero || "",
-      email: worker.email || "",
-      address: worker.address || "",
-      contract: worker.contract || "CLT",
-      role: worker.role || ""
-    });
-    setDidInitialize(true);
-  }
-  
-  // Resetar o flag quando o modal é fechado
-  if (!isOpen) {
-    setDidInitialize(false);
-  }
-}, [worker, isOpen, didInitialize]);
+  useEffect(() => {
+    // Carrega os dados somente na abertura do modal e não a cada renderização
+    if (worker && isOpen && !didInitialize) {
+      console.log('Dados do worker recebidos:', {
+        nascimento: worker.nascimento,
+        admissao: worker.admissao
+      });
+      
+      setFormData({
+        _id: worker._id || "",
+        name: worker.name || "",
+        cpf: worker.cpf || "",
+        
+        // Ajustar as datas para o fuso horário local
+        nascimento: adjustDateForTimezone(worker.nascimento),
+        admissao: adjustDateForTimezone(worker.admissao),
+        
+        salario: worker.salario || "",
+        ajuda: worker.ajuda || "",
+        numero: worker.numero || "",
+        email: worker.email || "",
+        address: worker.address || "",
+        contract: worker.contract || "CLT",
+        role: worker.role || ""
+      });
+      
+      console.log('Datas ajustadas:', {
+        nascimento: adjustDateForTimezone(worker.nascimento),
+        admissao: adjustDateForTimezone(worker.admissao)
+      });
+      
+      setDidInitialize(true);
+    }
+    
+    // Resetar o flag quando o modal é fechado
+    if (!isOpen) {
+      setDidInitialize(false);
+    }
+  }, [worker, isOpen, didInitialize]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -164,13 +199,6 @@ useEffect(() => {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-200">
             ✕
           </button>
-        </div>
-        
-        {/* Alterado: removida a classe bg-gray-700 e definida cor em hex */}
-        <div className="mb-4 p-2 rounded" style={{ backgroundColor: "#374151" }}>
-          <p className="text-sm text-gray-300">
-            <span className="font-bold">Debug:</span> Tipo de contrato atual: {formData.contract}
-          </p>
         </div>
 
         <motion.form
@@ -314,10 +342,7 @@ useEffect(() => {
             </label>
             <Select
               value={formData.contract}
-              onValueChange={(value) => {
-                console.log("Contrato selecionado:", value);
-                handleContractChange(value);
-              }}
+              onValueChange={handleContractChange}
             >
               <SelectTrigger id="contract" className="bg-transparent text-white border-gray-500">
                 <SelectValue placeholder="Selecione o tipo de contrato" />
