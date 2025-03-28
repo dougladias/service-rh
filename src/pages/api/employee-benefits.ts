@@ -1,42 +1,9 @@
+// src/pages/api/employee-benefits.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import mongoose from 'mongoose';
 import connectToDatabase from '@/api/mongoose';
 import Worker from '@/models/Worker';
-import { BenefitType } from '@/models/Benefit';
-
-// Schema para Benefícios do Funcionário
-const EmployeeBenefitSchema = new mongoose.Schema({
-  employeeId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Worker', 
-    required: true 
-  },
-  benefitTypeId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'BenefitType', 
-    required: true 
-  },
-  value: { 
-    type: Number, 
-    required: true,
-    min: 0 
-  },
-  status: {
-    type: String,
-    enum: ['active', 'inactive'],
-    default: 'active'
-  },
-  startDate: { 
-    type: Date, 
-    default: Date.now 
-  },
-  endDate: { 
-    type: Date 
-  }
-}, { timestamps: true });
-
-// Modelo de Benefícios do Funcionário
-const EmployeeBenefit = mongoose.models.EmployeeBenefit || mongoose.model('EmployeeBenefit', EmployeeBenefitSchema);
+import { BenefitType, EmployeeBenefit } from '@/models/Benefit';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -55,13 +22,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           // Buscar benefícios do funcionário com populate de detalhes do tipo de benefício
           const employeeBenefits = await EmployeeBenefit.find({ 
-            employeeId: new mongoose.Types.ObjectId(employeeId),
-            status: 'active'
-          }).populate('benefitTypeId', 'name description');
+            employeeId: new mongoose.Types.ObjectId(employeeId)
+          }).populate('benefitTypeId');
 
-          console.log('Benefícios encontrados:', employeeBenefits);
+          // Transformar os resultados para incluir detalhes do tipo de benefício
+          const benefitsWithType = employeeBenefits.map(benefit => {
+            return {
+              _id: benefit._id,
+              employeeId: benefit.employeeId,
+              benefitTypeId: benefit.benefitTypeId._id,
+              value: benefit.value,
+              status: benefit.status,
+              benefitType: benefit.benefitTypeId
+            };
+          });
 
-          res.status(200).json(employeeBenefits);
+          res.status(200).json(benefitsWithType);
         } catch (error) {
           console.error('Erro ao buscar benefícios do funcionário:', error);
           res.status(500).json({ 
@@ -116,11 +92,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           await newEmployeeBenefit.save();
 
           // Popular detalhes do tipo de benefício para resposta
-          await newEmployeeBenefit.populate('benefitTypeId', 'name description hasDiscount discountPercentage defaultValue');
+          await newEmployeeBenefit.populate('benefitTypeId');
 
-          console.log('Novo benefício criado:', newEmployeeBenefit);
+          const responseData = {
+            _id: newEmployeeBenefit._id,
+            employeeId: newEmployeeBenefit.employeeId,
+            benefitTypeId: newEmployeeBenefit.benefitTypeId._id,
+            value: newEmployeeBenefit.value,
+            status: newEmployeeBenefit.status,
+            benefitType: newEmployeeBenefit.benefitTypeId
+          };
 
-          res.status(201).json(newEmployeeBenefit);
+          res.status(201).json(responseData);
         } catch (error) {
           console.error('Erro ao adicionar benefício do funcionário:', error);
           res.status(500).json({ 
@@ -148,15 +131,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               new: true,
               runValidators: true 
             }
-          ).populate('benefitTypeId', 'name description hasDiscount discountPercentage defaultValue');
+          ).populate('benefitTypeId');
 
           if (!updatedEmployeeBenefit) {
             return res.status(404).json({ message: 'Benefício do funcionário não encontrado' });
           }
 
-          console.log('Benefício atualizado:', updatedEmployeeBenefit);
+          const responseData = {
+            _id: updatedEmployeeBenefit._id,
+            employeeId: updatedEmployeeBenefit.employeeId,
+            benefitTypeId: updatedEmployeeBenefit.benefitTypeId._id,
+            value: updatedEmployeeBenefit.value,
+            status: updatedEmployeeBenefit.status,
+            benefitType: updatedEmployeeBenefit.benefitTypeId
+          };
 
-          res.status(200).json(updatedEmployeeBenefit);
+          res.status(200).json(responseData);
         } catch (error) {
           console.error('Erro ao atualizar benefício do funcionário:', error);
           res.status(500).json({ 
@@ -175,25 +165,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ message: 'ID inválido' });
           }
 
-          // Desativar o benefício do funcionário
-          const deletedEmployeeBenefit = await EmployeeBenefit.findByIdAndUpdate(
-            id, 
-            { status: 'inactive', endDate: new Date() }, 
-            { 
-              new: true,
-              runValidators: true 
-            }
-          ).populate('benefitTypeId', 'name description hasDiscount discountPercentage defaultValue');
+          // Excluir permanentemente o benefício
+          const deletedEmployeeBenefit = await EmployeeBenefit.findByIdAndDelete(id);
 
           if (!deletedEmployeeBenefit) {
             return res.status(404).json({ message: 'Benefício do funcionário não encontrado' });
           }
 
-          console.log('Benefício desativado:', deletedEmployeeBenefit);
-
           res.status(200).json({ 
-            message: 'Benefício do funcionário desativado com sucesso',
-            employeeBenefit: deletedEmployeeBenefit 
+            message: 'Benefício do funcionário excluído com sucesso',
           });
         } catch (error) {
           console.error('Erro ao excluir benefício do funcionário:', error);

@@ -1,5 +1,5 @@
 // src/models/Benefit.ts
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, model, models } from "mongoose";
 
 // Interface para o tipo de benefício
 export interface IBenefitType extends Document {
@@ -8,13 +8,13 @@ export interface IBenefitType extends Document {
   hasDiscount: boolean;
   discountPercentage?: number;
   defaultValue: number;
-  status?: 'active' | 'inactive';
+  status: 'active' | 'inactive';
 }
 
 // Interface para benefícios do funcionário
 export interface IEmployeeBenefit extends Document {
   employeeId: mongoose.Types.ObjectId;
-  benefitTypeId: mongoose.Types.ObjectId;
+  benefitTypeId: mongoose.Types.ObjectId | IBenefitType;
   value: number;
   status: 'active' | 'inactive';
   startDate: Date;
@@ -26,8 +26,7 @@ const BenefitTypeSchema: Schema = new Schema({
   name: { 
     type: String, 
     required: true,
-    trim: true,
-    unique: true
+    trim: true
   },
   description: { 
     type: String, 
@@ -86,8 +85,8 @@ const EmployeeBenefitSchema: Schema = new Schema({
 }, { timestamps: true });
 
 // Criar modelos
-export const BenefitType = mongoose.models.BenefitType || mongoose.model<IBenefitType>('BenefitType', BenefitTypeSchema);
-export const EmployeeBenefit = mongoose.models.EmployeeBenefit || mongoose.model<IEmployeeBenefit>('EmployeeBenefit', EmployeeBenefitSchema);
+export const BenefitType = models.BenefitType || model<IBenefitType>('BenefitType', BenefitTypeSchema);
+export const EmployeeBenefit = models.EmployeeBenefit || model<IEmployeeBenefit>('EmployeeBenefit', EmployeeBenefitSchema);
 
 const Benefits = { BenefitType, EmployeeBenefit };
 export default Benefits;

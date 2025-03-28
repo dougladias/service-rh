@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import mongoose from 'mongoose';
 import { MongoServerError } from 'mongodb';
-import { BenefitType, IBenefitType } from '@/models/Benefit';
+import { BenefitType } from '@/models/Benefit';
 import connectToDatabase from '@/api/mongoose';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -17,8 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   switch (req.method) {
     case 'GET':
       try {
-        // Buscar todos os tipos de benefícios ativos
-        const benefitTypes = await BenefitType.find({ status: 'active' });
+        // Buscar todos os tipos de benefícios
+        const benefitTypes = await BenefitType.find({});
         res.status(200).json(benefitTypes);
       } catch (error) {
         console.error('Erro ao buscar tipos de benefícios:', error);
@@ -34,7 +34,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           description, 
           hasDiscount, 
           discountPercentage, 
-          defaultValue 
+          defaultValue,
+          status = 'active'
         } = req.body;
 
         // Validar campos obrigatórios
@@ -49,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           hasDiscount: hasDiscount || false,
           discountPercentage: hasDiscount ? discountPercentage : undefined,
           defaultValue,
-          status: 'active'
+          status
         });
 
         await newBenefitType.save();
@@ -73,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     case 'PUT':
       try {
         const { id } = req.query;
-        const updateData: Partial<IBenefitType> = req.body;
+        const updateData = req.body;
 
         // Validar ID
         if (!id || typeof id !== 'string') {
