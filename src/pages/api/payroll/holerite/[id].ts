@@ -1,8 +1,11 @@
+// src/pages/api/payroll/holerite/[id].ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { connectToDatabase } from '@/api/mongodb';
 import mongoose from 'mongoose';
+import { connectToDatabase } from '@/api/mongodb';
+import Worker from '@/models/Worker'; // Modelo de funcionário
+import { EmployeeBenefit } from '@/models/Benefit'; // Modelos de benefícios
 
-// Schema do Holerite
+// Schema do Holerite (mantido igual aos outros arquivos de payroll)
 const PayrollSchema = new mongoose.Schema({
   employeeId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -21,19 +24,15 @@ const PayrollSchema = new mongoose.Schema({
   inss: { type: Number },
   fgts: { type: Number },
   irrf: { type: Number },
-  benefits: {
-    valeTransporte: { type: Number, default: 0 },
-    valeRefeicao: { type: Number, default: 0 },
-    planoSaude: { type: Number, default: 0 },
-  },
   status: {
     type: String,
     enum: ['pending', 'processed', 'paid'],
-    default: 'pending',
+    default: 'processed',
   },
   processedAt: { type: Date, default: Date.now },
 });
 
+// Função auxiliar para formatar moeda
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -42,47 +41,44 @@ const formatCurrency = (value: number): string => {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('Recebida requisição para gerar holerite:', {
-    method: req.method,
-    query: req.query,
-    headers: req.headers
-  });
-
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Método não permitido' });
   }
 
   try {
+    // Conectar ao banco de dados
     await connectToDatabase();
+
+    // Obter o ID do holerite
     const { id } = req.query;
 
-    // Validação do ID
+    // Validar ID
     if (!id || typeof id !== 'string') {
-      console.error('ID não fornecido ou inválido:', id);
-      return res.status(400).json({ message: 'ID do holerite é obrigatório' });
+      return res.status(400).json({ message: 'ID do holerite inválido' });
     }
 
-    // Verificar se o ID é um ObjectId válido
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.error('ID de holerite inválido:', id);
-      return res.status(400).json({ message: 'ID de holerite inválido' });
-    }
-
-    // Busca o holerite
-    console.log('Buscando holerite com ID:', id);
-    
     // Definir o modelo se ainda não existe
     const PayrollModel = mongoose.models.Payroll || mongoose.model('Payroll', PayrollSchema);
-    
+
     // Buscar o holerite
     const payroll = await PayrollModel.findById(id);
-    
+
     if (!payroll) {
-      console.error('Holerite não encontrado para o ID:', id);
       return res.status(404).json({ message: 'Holerite não encontrado' });
     }
 
-    console.log('Holerite encontrado:', payroll.employeeName);
+    // Buscar detalhes do funcionário
+    const worker = await Worker.findById(payroll.employeeId);
+
+    if (!worker) {
+      return res.status(404).json({ message: 'Funcionário não encontrado' });
+    }
+
+    // Buscar benefícios do funcionário
+    const employeeBenefits = await EmployeeBenefit.find({ 
+      employeeId: payroll.employeeId, 
+      status: 'active' 
+    }).populate('benefitTypeId');
 
     // Definir o mês por extenso
     const meses = [
@@ -91,14 +87,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ];
     const mesExtenso = meses[payroll.month - 1];
 
-    // Cria resposta HTML em vez de PDF para teste
+    // Calcular total de benefícios que não descontam na folha
+    const benefitsWithoutDiscount = employeeBenefits
+      .filter(benefit => !benefit.benefitTypeId.hasDiscount)
+      .reduce((total, benefit) => total + benefit.value, 0);
+
+    // Calcular salário total considerando benefícios sem desconto
+    const totalSalaryWithBenefits = payroll.totalSalary + benefitsWithoutDiscount;
+
+    // Renderizar como HTML
     res.setHeader('Content-Type', 'text/html');
     res.setHeader(
       'Content-Disposition',
       `inline; filename=holerite_${payroll.employeeName.replace(/\s+/g, '_')}_${payroll.month}_${payroll.year}.html`
     );
 
-    // Gera HTML do holerite
+    // HTML do holerite
     const html = `
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -151,6 +155,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 <td>-</td>
               </tr>
             ` : ''}
+            ${employeeBenefits
+              .filter(benefit => !benefit.benefitTypeId.hasDiscount)
+              .map(benefit => `
+              <tr>
+                <td>${benefit.benefitTypeId.name}</td>
+                <td>-</td>
+                <td>${formatCurrency(benefit.value)}</td>
+                <td>-</td>
+              </tr>
+            `).join('')}
             ${payroll.contract === 'CLT' ? `
               ${payroll.inss ? `
                 <tr>
@@ -168,6 +182,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   <td>${formatCurrency(payroll.irrf)}</td>
                 </tr>
               ` : ''}
+              ${employeeBenefits
+                .filter(benefit => benefit.benefitTypeId.hasDiscount)
+                .map(benefit => `
+                <tr>
+                  <td>${benefit.benefitTypeId.name}</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>${formatCurrency(benefit.value)}</td>
+                </tr>
+              `).join('')}
               ${payroll.fgts ? `
                 <tr>
                   <td>FGTS (Depósito)</td>
@@ -177,42 +201,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 </tr>
               ` : ''}
             ` : ''}
-            ${payroll.benefits ? `
-              ${payroll.benefits.valeTransporte > 0 ? `
-                <tr>
-                  <td>Vale Transporte</td>
-                  <td>-</td>
-                  <td>${formatCurrency(payroll.benefits.valeTransporte)}</td>
-                  <td>-</td>
-                </tr>
-              ` : ''}
-              ${payroll.benefits.valeRefeicao > 0 ? `
-                <tr>
-                  <td>Vale Refeição</td>
-                  <td>-</td>
-                  <td>${formatCurrency(payroll.benefits.valeRefeicao)}</td>
-                  <td>-</td>
-                </tr>
-              ` : ''}
-              ${payroll.benefits.planoSaude > 0 ? `
-                <tr>
-                  <td>Plano de Saúde</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>${formatCurrency(payroll.benefits.planoSaude)}</td>
-                </tr>
-              ` : ''}
-            ` : ''}
           </tbody>
           <tfoot>
             <tr class="total">
               <td colspan="2">Totais</td>
-              <td>${formatCurrency(payroll.baseSalary + (payroll.overtimePay || 0))}</td>
+              <td>${formatCurrency(
+                payroll.baseSalary + 
+                (payroll.overtimePay || 0) + 
+                benefitsWithoutDiscount
+              )}</td>
               <td>${formatCurrency(payroll.deductions)}</td>
             </tr>
             <tr class="total">
               <td colspan="3">Valor Líquido</td>
-              <td>${formatCurrency(payroll.totalSalary)}</td>
+              <td>${formatCurrency(totalSalaryWithBenefits)}</td>
             </tr>
           </tfoot>
         </table>
@@ -235,8 +237,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           <p>Código de Autenticação: ${payroll._id}</p>
         </div>
       </body>
-      </html>
-    `;
+      </html>`;
 
     res.send(html);
 

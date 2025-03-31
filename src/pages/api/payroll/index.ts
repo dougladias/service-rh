@@ -1,17 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { connectToDatabase } from '@/api/mongodb';
 import mongoose from 'mongoose';
 
-// Schema do Holerite
+// Schema do Holerite com índices e otimizações
 const PayrollSchema = new mongoose.Schema({
   employeeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Worker',
-    required: true
+    required: true,
+    index: true  // Adicionar índice para melhorar performance
   },
   employeeName: {
-    type: String,
-    required: true
+    type: String, 
+    required: true,
+    index: true  // Índice para busca por nome
   },
   contract: {
     type: String,
@@ -20,11 +21,13 @@ const PayrollSchema = new mongoose.Schema({
   },
   month: {
     type: Number,
-    required: true
+    required: true,
+    index: true  // Índice para busca por mês
   },
   year: {
     type: Number,
-    required: true
+    required: true,
+    index: true  // Índice para busca por ano
   },
   baseSalary: {
     type: Number,
@@ -63,61 +66,84 @@ const PayrollSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['pending', 'processed', 'paid'],
-    default: 'processed'
+    default: 'processed',
+    index: true  // Índice para busca por status
   },
   processedAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    index: true  // Índice para ordenação
   }
+}, {
+  // Configurações de otimização
+  autoIndex: true,  // Garantir criação de índices
+  timestamps: true  // Adicionar createdAt e updatedAt automaticamente
 });
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('Endpoint de folha de pagamento acessado:', {
-    method: req.method,
-    query: req.query
-  });
+// Criar modelo com verificação de existência
+const PayrollModel = mongoose.models.Payroll || mongoose.model('Payroll', PayrollSchema);
 
-  // Permitir GET para buscar folhas
-  if (req.method === 'GET') {
-    try {
-      // Conectar ao banco de dados
-      await connectToDatabase();
-      
-      // Obter modelo de Holerite
-      const PayrollModel = mongoose.models.Payroll || mongoose.model('Payroll', PayrollSchema);
-      
-      // Obter mês e ano dos parâmetros da query
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    // Conectar ao banco de dados com timeout configurado
+    await mongoose.connect(process.env.MONGODB_URI as string, {
+      serverSelectionTimeoutMS: 5000,  // Tempo de seleção do servidor
+      socketTimeoutMS: 45000,  // Timeout para operações de socket
+      connectTimeoutMS: 10000  // Tempo máximo para conectar
+    });
+
+    // Log para depuração
+    console.log('Conectado ao MongoDB, processando solicitação de folha de pagamento');
+
+    // Verificar se é uma requisição GET
+    if (req.method === 'GET') {
       const { month, year } = req.query;
-      
+
+      // Validar parâmetros
       if (!month || !year) {
-        return res.status(400).json({ message: 'Mês e ano são obrigatórios' });
+        return res.status(400).json({ 
+          message: 'Mês e ano são obrigatórios',
+          query: req.query
+        });
       }
 
-      console.log(`Buscando folhas para: ${month}/${year}`);
+      try {
+        // Buscar folhas de pagamento com tempo limite e populate
+        const payrolls = await PayrollModel.find({
+          month: parseInt(month as string),
+          year: parseInt(year as string)
+        })
+        .select('-__v')  // Excluir versão do Mongoose
+        .lean()  // Retorna objetos JavaScript puros, mais leve
+        .sort({ employeeName: 1 });  // Ordenar por nome do funcionário
 
-      // Buscar holerites para o mês e ano especificados
-      const payrolls = await PayrollModel.find({
-        month: parseInt(month as string),
-        year: parseInt(year as string)
-      }).sort({ employeeName: 1 }); // Ordenar por nome do funcionário
-      
-      console.log(`Encontradas ${payrolls.length} folhas para ${month}/${year}`);
+        // Log para depuração
+        console.log(`Encontradas ${payrolls.length} folhas para ${month}/${year}`);
 
-      return res.status(200).json({ 
-        message: 'Folhas de pagamento recuperadas com sucesso',
-        payrolls: payrolls 
-      });
-    } catch (error) {
-      console.error('Erro ao buscar folhas de pagamento:', error);
-      return res.status(500).json({ 
-        message: 'Erro ao buscar folhas de pagamento',
-        error: error instanceof Error ? error.message : 'Erro desconhecido' 
-      });
+        // Retornar resultados
+        return res.status(200).json({ 
+          message: 'Folhas de pagamento recuperadas com sucesso',
+          payrolls 
+        });
+
+      } catch (findError) {
+        console.error('Erro ao buscar folhas:', findError);
+        return res.status(500).json({ 
+          message: 'Erro ao buscar folhas de pagamento',
+          error: findError instanceof Error ? findError.message : 'Erro desconhecido'
+        });
+      }
+    } else {
+      // Método não permitido
+      res.setHeader('Allow', ['GET']);
+      return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
-  } 
-  // Método não permitido
-  else {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+  } catch (connectionError) {
+    // Erro de conexão
+    console.error('Erro de conexão ao MongoDB:', connectionError);
+    return res.status(500).json({ 
+      message: 'Erro de conexão ao banco de dados',
+      error: connectionError instanceof Error ? connectionError.message : 'Erro desconhecido'
+    });
   }
 }
