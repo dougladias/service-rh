@@ -40,6 +40,47 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
+// Função para calcular INSS (tabela 2024)
+const calculateINSS = (salary: number): number => {
+  const inssRanges = [
+    { max: 1320.00, rate: 0.075 },
+    { max: 2571.29, rate: 0.09 },
+    { max: 3856.94, rate: 0.12 },
+    { max: 7507.49, rate: 0.14 }
+  ];
+
+  let inss = 0;
+  let remainingSalary = salary;
+  let previousMax = 0;
+
+  for (const range of inssRanges) {
+    if (remainingSalary > 0) {
+      const baseCalc = Math.min(remainingSalary, range.max - previousMax);
+      inss += baseCalc * range.rate;
+      remainingSalary -= baseCalc;
+      previousMax = range.max;
+    }
+  }
+
+  return Number(inss.toFixed(2));
+};
+
+// Função para calcular IRRF (tabela 2024)
+const calculateIRRF = (salary: number, inss: number): number => {
+  const baseCalc = salary - inss;
+
+  if (baseCalc <= 2259.20) return 0;
+  if (baseCalc <= 2826.65) return Number(((baseCalc * 0.075) - 169.44).toFixed(2));
+  if (baseCalc <= 3751.05) return Number(((baseCalc * 0.15) - 381.44).toFixed(2));
+  if (baseCalc <= 4664.68) return Number(((baseCalc * 0.225) - 662.77).toFixed(2));
+  return Number(((baseCalc * 0.275) - 896.00).toFixed(2));
+};
+
+// Função para calcular FGTS
+const calculateFGTS = (salary: number): number => {
+  return Number((salary * 0.08).toFixed(2));
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Método não permitido' });
@@ -114,11 +155,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .filter(benefit => !benefit.benefitTypeId.hasDiscount)
           .reduce((total, benefit) => total + benefit.value, 0);
 
-    // Calcular salário total considerando benefícios sem desconto
-    // Usar o salário do worker como base, não o valor do payroll
+    // Calcular valores se estiverem zerados
+    let inssValue = 0;
+    let irrfValue = 0; 
+    let fgtsValue = 0;
+    let totalDescontos = payroll.deductions || 0;
+
+    if (payroll.contract === 'CLT') {
+      // Se os valores estiverem zerados ou não existirem, calcular novamente
+      inssValue = payroll.inss || calculateINSS(workerSalary);
+      fgtsValue = payroll.fgts || calculateFGTS(workerSalary);
+      irrfValue = payroll.irrf || calculateIRRF(workerSalary, inssValue);
+      
+      // Se deductions for zero, recalcular
+      if (totalDescontos === 0) {
+        const benefitsDeductions = employeeBenefits
+          .filter(benefit => benefit.benefitTypeId.hasDiscount)
+          .reduce((total, benefit) => total + benefit.value, 0);
+        
+        totalDescontos = inssValue + irrfValue + benefitsDeductions;
+      }
+    }
+
+    // Calcular salário líquido considerando as deduções
     const totalSalaryWithBenefits = workerSalary + 
       (payroll.overtimePay || 0) + 
-      benefitsWithoutDiscount;
+      benefitsWithoutDiscount - 
+      totalDescontos;
 
     // Renderizar como HTML
     res.setHeader('Content-Type', 'text/html');
@@ -192,22 +255,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               </tr>
             `).join('')}
             ${payroll.contract === 'CLT' ? `
-              ${payroll.inss ? `
-                <tr>
-                  <td>INSS</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>${formatCurrency(payroll.inss)}</td>
-                </tr>
-              ` : ''}
-              ${payroll.irrf ? `
-                <tr>
-                  <td>IRRF</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>${formatCurrency(payroll.irrf)}</td>
-                </tr>
-              ` : ''}
+              <tr>
+                <td>INSS</td>
+                <td>-</td>
+                <td>-</td>
+                <td>${formatCurrency(inssValue)}</td>
+              </tr>
+              <tr>
+                <td>IRRF</td>
+                <td>-</td>
+                <td>-</td>
+                <td>${formatCurrency(irrfValue)}</td>
+              </tr>
               ${employeeBenefits
                 .filter(benefit => benefit.benefitTypeId.hasDiscount)
                 .map(benefit => `
@@ -218,14 +277,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   <td>${formatCurrency(benefit.value)}</td>
                 </tr>
               `).join('')}
-              ${payroll.fgts ? `
-                <tr>
-                  <td>FGTS (Depósito)</td>
-                  <td>-</td>
-                  <td>${formatCurrency(payroll.fgts)}</td>
-                  <td>-</td>
-                </tr>
-              ` : ''}
+              <tr>
+                <td>FGTS (Depósito)</td>
+                <td>-</td>
+                <td>${formatCurrency(fgtsValue)}</td>
+                <td>-</td>
+              </tr>
             ` : ''}
           </tbody>
                       <tfoot>
@@ -236,7 +293,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 (payroll.overtimePay || 0) + 
                 benefitsWithoutDiscount
               )}</td>
-              <td>${formatCurrency(payroll.deductions)}</td>
+              <td>${formatCurrency(totalDescontos)}</td>
             </tr>
             <tr class="total">
               <td colspan="3">Valor Líquido</td>
