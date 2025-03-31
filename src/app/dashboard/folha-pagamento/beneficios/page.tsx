@@ -105,6 +105,10 @@ export default function BeneficiosPage() {
     discountPercentage: 6 // Valor padrão para VT (6%)
   })
 
+  // Estados para edição de tipo de benefício
+  const [isEditingBenefitType, setIsEditingBenefitType] = useState(false)
+  const [editingBenefitType, setEditingBenefitType] = useState<BenefitType | null>(null)
+
   // Buscar tipos de benefícios
   const {
     data: benefitTypes = [],
@@ -134,7 +138,16 @@ export default function BeneficiosPage() {
     queryFn: () => axios.get('/api/workers').then(res => res.data)
   })
 
-  // Buscar benefícios do funcionário selecionado
+  // Buscar TODOS os benefícios ativos, não apenas do funcionário selecionado
+  const {
+    data: allEmployeeBenefits = [],
+    isLoading: isLoadingAllBenefits
+  } = useQuery<EmployeeBenefit[]>({
+    queryKey: ['allEmployeeBenefits'],
+    queryFn: () => axios.get('/api/employee-benefits-all').then(res => res.data),
+  })
+
+  // Buscar benefícios do funcionário selecionado (mantido para a edição de benefícios individuais)
   const {
     data: employeeBenefits = []
   } = useQuery<EmployeeBenefit[]>({
@@ -154,9 +167,12 @@ export default function BeneficiosPage() {
         employeeId: selectedEmployee
       }),
     onSuccess: () => {
-      // Invalida e recarrega os benefícios do funcionário
+      // Invalida e recarrega os benefícios do funcionário E todos os benefícios
       queryClient.invalidateQueries({
         queryKey: ['employeeBenefits', selectedEmployee]
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['allEmployeeBenefits']
       })
 
       // Reseta o novo benefício
@@ -173,9 +189,12 @@ export default function BeneficiosPage() {
     mutationFn: (benefitId: string) =>
       axios.delete(`/api/employee-benefits?id=${benefitId}`),
     onSuccess: () => {
-      // Invalida e recarrega os benefícios do funcionário
+      // Invalida e recarrega os benefícios do funcionário E todos os benefícios
       queryClient.invalidateQueries({
         queryKey: ['employeeBenefits', selectedEmployee]
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['allEmployeeBenefits']
       })
     },
     onError: (error) => {
@@ -189,9 +208,12 @@ export default function BeneficiosPage() {
     mutationFn: (params: { benefitId: string; updateData: { value?: number; status?: 'active' | 'inactive' } }) =>
       axios.put(`/api/employee-benefits?id=${params.benefitId}`, params.updateData),
     onSuccess: () => {
-      // Invalida e recarrega os benefícios do funcionário
+      // Invalida e recarrega os benefícios do funcionário E todos os benefícios
       queryClient.invalidateQueries({
         queryKey: ['employeeBenefits', selectedEmployee]
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['allEmployeeBenefits']
       })
     },
     onError: (error) => {
@@ -222,6 +244,24 @@ export default function BeneficiosPage() {
     }
   })
 
+  // Mutation para atualizar tipo de benefício
+  const updateBenefitTypeMutation = useMutation({
+    mutationFn: (params: { benefitTypeId: string; updateData: Partial<BenefitType> }) =>
+      axios.put(`/api/benefit-types?id=${params.benefitTypeId}`, params.updateData),
+    onSuccess: () => {
+      // Invalida e recarrega os tipos de benefícios
+      queryClient.invalidateQueries({
+        queryKey: ['benefitTypes']
+      })
+      setIsEditingBenefitType(false)
+      setEditingBenefitType(null)
+    },
+    onError: (error) => {
+      console.error('Erro ao atualizar tipo de benefício:', error)
+      alert('Erro ao atualizar tipo de benefício')
+    }
+  })
+
   // Ícone para o tipo de benefício
   const getBenefitIcon = (benefitTypeName: string) => {
     const iconMap: Record<string, typeof Bus> = {
@@ -243,6 +283,20 @@ export default function BeneficiosPage() {
     ),
     [employees, searchTerm]
   )
+
+  // Agrupa os benefícios por funcionário para fácil acesso
+  const benefitsByEmployee = useMemo(() => {
+    const benefitsMap: Record<string, EmployeeBenefit[]> = {};
+    
+    allEmployeeBenefits.forEach(benefit => {
+      if (!benefitsMap[benefit.employeeId]) {
+        benefitsMap[benefit.employeeId] = [];
+      }
+      benefitsMap[benefit.employeeId].push(benefit);
+    });
+    
+    return benefitsMap;
+  }, [allEmployeeBenefits]);
 
   // Função para editar benefícios de um funcionário
   const handleEditEmployeeBenefits = (employeeId: string) => {
@@ -296,6 +350,20 @@ export default function BeneficiosPage() {
     }
 
     createBenefitTypeMutation.mutate(dataToSend)
+  }
+
+  // Função para editar tipo de benefício
+  const handleEditBenefitType = (benefitType: BenefitType) => {
+    setEditingBenefitType(benefitType)
+    setIsEditingBenefitType(true)
+  }
+
+  // Função para atualizar status do tipo de benefício
+  const handleUpdateBenefitTypeStatus = (benefitTypeId: string, newStatus: 'active' | 'inactive') => {
+    updateBenefitTypeMutation.mutate({
+      benefitTypeId,
+      updateData: { status: newStatus }
+    })
   }
 
   // Efeito para log de erro
@@ -353,42 +421,42 @@ export default function BeneficiosPage() {
                   <TableRow>
                     <TableHead>Funcionário</TableHead>
                     <TableHead>Cargo</TableHead>
-                    <TableHead>Departamento</TableHead>
                     <TableHead>Benefícios Ativos</TableHead>
                     <TableHead className="text-right">Valor Total</TableHead>
                     <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoadingEmployees ? (
+                  {isLoadingEmployees || isLoadingAllBenefits ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center">
-                        Carregando funcionários...
+                      <TableCell colSpan={5} className="text-center">
+                        Carregando funcionários e benefícios...
                       </TableCell>
                     </TableRow>
                   ) : filteredEmployees.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center">
+                      <TableCell colSpan={5} className="text-center">
                         Nenhum funcionário encontrado
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredEmployees.map((emp) => {
-                      // Filtrar benefícios ativos deste funcionário
-                      const activeBenefits = employeeBenefits.filter(
-                        b => b.employeeId === emp._id && b.status === 'active'
-                      )
+                      // Obter os benefícios deste funcionário do mapa agrupado
+                      const employeeBenefitsList = benefitsByEmployee[emp._id] || [];
+                      
+                      // Filtrar apenas os benefícios ativos
+                      const activeBenefits = employeeBenefitsList.filter(
+                        b => b.status === 'active'
+                      );
 
                       return (
                         <TableRow key={emp._id}>
                           <TableCell className="font-medium">{emp.name}</TableCell>
                           <TableCell>{emp.role}</TableCell>
-                          <TableCell>{emp.department}</TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {activeBenefits.map((benefit) => {
-                                console.log('Benefit:', benefit); // Depuração para verificar os dados do benefício
-                                const BenefitIcon = getBenefitIcon(benefit.benefitType?.name || ''); // Garante que o nome está correto
+                                const BenefitIcon = getBenefitIcon(benefit.benefitType?.name || '');
                                 return (
                                   <div key={benefit._id} className="inline-flex items-center bg-muted px-2 py-1 rounded-md text-xs">
                                     <BenefitIcon className="mr-1 h-3 w-3" />
@@ -491,10 +559,12 @@ export default function BeneficiosPage() {
                               <Switch
                                 id={`status-${benefit._id}`}
                                 checked={benefit.status === 'active'}
-                                onCheckedChange={(checked) => {
-                                  // Lógica para atualizar o status do tipo de benefício
-                                  console.log(`Atualizar status de ${benefit.name} para ${checked ? 'active' : 'inactive'}`)
-                                }}
+                                onCheckedChange={(checked) => 
+                                  handleUpdateBenefitTypeStatus(
+                                    benefit._id, 
+                                    checked ? 'active' : 'inactive'
+                                  )
+                                }
                               />
                               <Label htmlFor={`status-${benefit._id}`}>
                                 {benefit.status === 'active' ? 'Ativo' : 'Inativo'}
@@ -503,7 +573,11 @@ export default function BeneficiosPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex justify-center space-x-2">
-                              <Button variant="ghost" size="icon">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleEditBenefitType(benefit)}
+                              >
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </div>
@@ -544,10 +618,6 @@ export default function BeneficiosPage() {
                     <p>
                       <span className="text-muted-foreground">Cargo:</span>{' '}
                       {employees.find(e => e._id === selectedEmployee)?.role}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Departamento:</span>{' '}
-                      {employees.find(e => e._id === selectedEmployee)?.department}
                     </p>
                   </div>
                 </div>
@@ -790,6 +860,139 @@ export default function BeneficiosPage() {
               disabled={createBenefitTypeMutation.isPending}
             >
               {createBenefitTypeMutation.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para editar tipo de benefício */}
+      <Dialog open={isEditingBenefitType} onOpenChange={setIsEditingBenefitType}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Tipo de Benefício</DialogTitle>
+            <DialogDescription>
+              Atualize as informações deste tipo de benefício
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingBenefitType && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-benefit-name">Nome do Benefício</Label>
+                <Input
+                  id="edit-benefit-name"
+                  value={editingBenefitType.name}
+                  onChange={(e) => setEditingBenefitType({
+                    ...editingBenefitType,
+                    name: e.target.value
+                  })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-benefit-description">Descrição</Label>
+                <Input
+                  id="edit-benefit-description"
+                  value={editingBenefitType.description}
+                  onChange={(e) => setEditingBenefitType({
+                    ...editingBenefitType,
+                    description: e.target.value
+                  })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-benefit-value">Valor Padrão (R$)</Label>
+                <Input
+                  id="edit-benefit-value"
+                  type="number"
+                  value={editingBenefitType.defaultValue}
+                  onChange={(e) => setEditingBenefitType({
+                    ...editingBenefitType,
+                    defaultValue: parseFloat(e.target.value) || 0
+                  })}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="edit-has-discount"
+                  checked={editingBenefitType.hasDiscount}
+                  onCheckedChange={(checked) => setEditingBenefitType({
+                    ...editingBenefitType,
+                    hasDiscount: checked,
+                    // Se desabilitar o desconto, zera a porcentagem
+                    ...(checked ? {} : { discountPercentage: 0 })
+                  })}
+                />
+                <Label htmlFor="edit-has-discount">Desconto em Folha</Label>
+              </div>
+
+              {editingBenefitType.hasDiscount && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-discount-percentage">Percentual de Desconto (%)</Label>
+                  <Input
+                    id="edit-discount-percentage"
+                    type="number"
+                    value={editingBenefitType.discountPercentage || 0}
+                    onChange={(e) => setEditingBenefitType({
+                      ...editingBenefitType,
+                      discountPercentage: parseFloat(e.target.value) || 0
+                    })}
+                    placeholder="Percentual de desconto"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="edit-status"
+                  checked={editingBenefitType.status === 'active'}
+                  onCheckedChange={(checked) => setEditingBenefitType({
+                    ...editingBenefitType,
+                    status: checked ? 'active' : 'inactive'
+                  })}
+                />
+                <Label htmlFor="edit-status">
+                  {editingBenefitType.status === 'active' ? 'Ativo' : 'Inativo'}
+                </Label>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditingBenefitType(false);
+              setEditingBenefitType(null);
+            }}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingBenefitType) {
+                  updateBenefitTypeMutation.mutate({
+                    benefitTypeId: editingBenefitType._id,
+                    updateData: {
+                      name: editingBenefitType.name,
+                      description: editingBenefitType.description,
+                      defaultValue: editingBenefitType.defaultValue,
+                      hasDiscount: editingBenefitType.hasDiscount,
+                      discountPercentage: editingBenefitType.hasDiscount 
+                        ? editingBenefitType.discountPercentage 
+                        : undefined,
+                      status: editingBenefitType.status
+                    }
+                  });
+                }
+              }}
+              disabled={updateBenefitTypeMutation.isPending}
+            >
+              {updateBenefitTypeMutation.isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>

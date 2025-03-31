@@ -25,6 +25,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             employeeId: new mongoose.Types.ObjectId(employeeId)
           }).populate('benefitTypeId');
 
+          // Log para depuração
+          console.log(`Benefícios encontrados para funcionário ${employeeId}:`, employeeBenefits.length);
+
           // Transformar os resultados para incluir detalhes do tipo de benefício
           const benefitsWithType = employeeBenefits.map(benefit => {
             return {
@@ -76,8 +79,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ message: 'Tipo de benefício não encontrado' });
           }
 
+          // Verificar se esse benefício já existe para o funcionário
+          const existingBenefit = await EmployeeBenefit.findOne({
+            employeeId,
+            benefitTypeId,
+            status: 'active'
+          });
+
+          if (existingBenefit) {
+            return res.status(409).json({ 
+              message: 'Este funcionário já possui este tipo de benefício ativo'
+            });
+          }
+
           // Usar valor padrão se não for fornecido
-          const benefitValue = value || benefitType.defaultValue;
+          const benefitValue = value !== undefined ? value : benefitType.defaultValue;
 
           // Criar novo benefício do funcionário
           const newEmployeeBenefit = new EmployeeBenefit({

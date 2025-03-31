@@ -58,7 +58,8 @@ const EmployeeBenefitSchema: Schema = new Schema({
   employeeId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Worker', 
-    required: true 
+    required: true,
+    index: true // Adicionar índice para melhorar performance de consultas
   },
   benefitTypeId: { 
     type: mongoose.Schema.Types.ObjectId, 
@@ -73,7 +74,8 @@ const EmployeeBenefitSchema: Schema = new Schema({
   status: {
     type: String,
     enum: ['active', 'inactive'],
-    default: 'active'
+    default: 'active',
+    index: true // Adicionar índice para melhorar performance de consultas
   },
   startDate: { 
     type: Date, 
@@ -83,6 +85,12 @@ const EmployeeBenefitSchema: Schema = new Schema({
     type: Date 
   }
 }, { timestamps: true });
+
+// Índice composto para garantir restrição de unicidade (um funcionário não pode ter o mesmo benefício ativo duas vezes)
+EmployeeBenefitSchema.index({ employeeId: 1, benefitTypeId: 1, status: 1 }, { 
+  unique: true, 
+  partialFilterExpression: { status: 'active' } 
+});
 
 // Criar modelos
 export const BenefitType = models.BenefitType || model<IBenefitType>('BenefitType', BenefitTypeSchema);

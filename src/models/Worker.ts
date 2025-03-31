@@ -10,16 +10,16 @@ interface IEntry {
   absent?: boolean;
 }
 
-// Nova interface para arquivos
+// Interface para arquivos
 interface IFile {
-  filename: string;      // Nome do arquivo no sistema
-  originalName: string;  // Nome original do arquivo
-  mimetype: string;      // Tipo do arquivo (ex: application/pdf)
-  size: number;          // Tamanho em bytes
-  path: string;          // Caminho de acesso
-  uploadDate: Date;      // Data de upload
-  description?: string;  // Descrição opcional
-  category?: string;     // Categoria do documento (RG, CPF, etc)
+  filename: string;
+  originalName: string;
+  mimetype: string;
+  size: number;
+  path: string;
+  uploadDate: Date;
+  description?: string;
+  category?: string;
 }
 
 export interface IWorker extends Document {
@@ -32,17 +32,11 @@ export interface IWorker extends Document {
   numero: string;
   email: string;
   address: string;
-  contract: string;     // Agora limitado a "CLT" ou "PJ"
+  contract: string;     // "CLT" ou "PJ"
   role: string;
-  /**
-   * Optional new fields
-   * - Make them optional so existing code & data won't break
-   */
-  department?: string; 
+  department: string;   // Tornando este campo obrigatório
   status?: "active" | "inactive" | "other";
   logs: IEntry[];
-  
-  // Campo para arquivos
   files?: IFile[];
 }
 
@@ -59,13 +53,22 @@ const WorkerSchema = new Schema<IWorker>({
   contract: { 
     type: String, 
     required: true,
-    enum: ["CLT", "PJ"] // Restringe os valores a somente CLT ou PJ
+    enum: ["CLT", "PJ"]
   },
   role: { type: String, required: true },
-
-  // New optional fields
-  department: { type: String, required: false },
-  status: { type: String, default: "active", required: false },
+  
+  // Departamento como campo obrigatório, com valor padrão
+  department: { 
+    type: String, 
+    required: true,
+    default: 'Geral' 
+  },
+  
+  status: { 
+    type: String, 
+    default: "active", 
+    enum: ["active", "inactive", "other"] 
+  },
 
   logs: [
     {
@@ -76,7 +79,6 @@ const WorkerSchema = new Schema<IWorker>({
     },
   ],
   
-  // Schema para arquivos
   files: [
     {
       filename: { type: String, required: true },
