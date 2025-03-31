@@ -67,12 +67,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ message: 'Holerite não encontrado' });
     }
 
+    // Função para converter salário com tratamento seguro
+    const parseSalary = (salaryStr: string): number => {
+      try {
+        // Remove qualquer caractere que não seja número, vírgula ou ponto
+        const cleanedStr = salaryStr.replace(/[^\d,.-]/g, '').replace(',', '.');
+        
+        // Converte para número
+        const salary = parseFloat(cleanedStr);
+        
+        // Verifica se é um número válido
+        return !isNaN(salary) ? salary : 0;
+      } catch (error) {
+        console.error('Erro ao converter salário:', error);
+        return 0;
+      }
+    };
+
     // Buscar detalhes do funcionário
     const worker = await Worker.findById(payroll.employeeId);
 
     if (!worker) {
       return res.status(404).json({ message: 'Funcionário não encontrado' });
     }
+
+    // Converter salário do worker
+    const workerSalary = parseSalary(worker.salario || '0');
 
     // Buscar benefícios do funcionário
     const employeeBenefits = await EmployeeBenefit.find({ 
@@ -87,13 +107,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ];
     const mesExtenso = meses[payroll.month - 1];
 
-    // Calcular total de benefícios que não descontam na folha
-    const benefitsWithoutDiscount = employeeBenefits
-      .filter(benefit => !benefit.benefitTypeId.hasDiscount)
-      .reduce((total, benefit) => total + benefit.value, 0);
+    // Para PJ, todos os benefícios são considerados sem desconto
+    const benefitsWithoutDiscount = payroll.contract === 'PJ' 
+      ? employeeBenefits.reduce((total, benefit) => total + benefit.value, 0)
+      : employeeBenefits
+          .filter(benefit => !benefit.benefitTypeId.hasDiscount)
+          .reduce((total, benefit) => total + benefit.value, 0);
 
     // Calcular salário total considerando benefícios sem desconto
-    const totalSalaryWithBenefits = payroll.totalSalary + benefitsWithoutDiscount;
+    // Usar o salário do worker como base, não o valor do payroll
+    const totalSalaryWithBenefits = workerSalary + 
+      (payroll.overtimePay || 0) + 
+      benefitsWithoutDiscount;
 
     // Renderizar como HTML
     res.setHeader('Content-Type', 'text/html');
@@ -129,6 +154,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           <p>Nome: ${payroll.employeeName}</p>
           <p>Tipo de Contrato: ${payroll.contract}</p>
           <p>Matrícula: ${payroll.employeeId}</p>
+          <p>Salário Base Registrado: ${formatCurrency(workerSalary)}</p>
         </div>
 
         <table>
@@ -144,7 +170,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             <tr>
               <td>Salário Base</td>
               <td>30 dias</td>
-              <td>${formatCurrency(payroll.baseSalary)}</td>
+              <td>${formatCurrency(workerSalary)}</td>
               <td>-</td>
             </tr>
             ${payroll.overtimePay > 0 ? `
@@ -202,11 +228,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               ` : ''}
             ` : ''}
           </tbody>
-          <tfoot>
+                      <tfoot>
             <tr class="total">
               <td colspan="2">Totais</td>
               <td>${formatCurrency(
-                payroll.baseSalary + 
+                workerSalary + 
                 (payroll.overtimePay || 0) + 
                 benefitsWithoutDiscount
               )}</td>

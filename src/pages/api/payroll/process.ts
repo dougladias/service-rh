@@ -2,7 +2,15 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { connectToDatabase } from '@/api/mongodb';
 import mongoose from 'mongoose';
 
-// Interface básica para tipagem
+// Definindo interfaces
+interface IWorker {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  salario?: string;
+  contract: 'CLT' | 'PJ';
+  status: string;
+}
+
 interface IPayroll {
   employeeId: mongoose.Types.ObjectId;
   employeeName: string;
@@ -10,20 +18,15 @@ interface IPayroll {
   month: number;
   year: number;
   baseSalary: number;
-  overtimePay: number;
-  overtimeHours: number;
+  overtimePay?: number;
+  overtimeHours?: number;
   deductions: number;
   totalSalary: number;
   inss?: number;
   fgts?: number;
   irrf?: number;
-  benefits?: {
-    valeTransporte: number;
-    valeRefeicao: number;
-    planoSaude: number;
-  };
   status: 'pending' | 'processed' | 'paid';
-  processedAt: Date;
+  processedAt?: Date;
 }
 
 // Schema do Holerite
@@ -73,16 +76,11 @@ const PayrollSchema = new mongoose.Schema({
   inss: {
     type: Number
   },
-  irrf: {
-    type: Number
-  },
   fgts: {
     type: Number
   },
-  benefits: {
-    valeTransporte: { type: Number, default: 0 },
-    valeRefeicao: { type: Number, default: 0 },
-    planoSaude: { type: Number, default: 0 }
+  irrf: {
+    type: Number
   },
   status: {
     type: String,
@@ -95,330 +93,204 @@ const PayrollSchema = new mongoose.Schema({
   }
 });
 
-// Schema do Worker (Funcionário) - Ajustado para salary como string
-const WorkerSchema = new mongoose.Schema({
-  name: { 
-    type: String, 
-    required: true 
-  },
-  salary: { 
-    type: String,  // Ajustado para String conforme seu modelo
-    required: true,
-    default: "3000"  // Valor padrão como string
-  },
-  contract: { 
-    type: String, 
-    enum: ['CLT', 'PJ'], 
-    required: true,
-    default: 'CLT'
-  },
-  cpf: String,
-  active: {
-    type: Boolean,
-    default: true
-  }
-});
-
-// Função para calcular INSS conforme tabela 2023
-function calculateINSS(salary: number): number {
-  try {
-    if (salary <= 1320) {
-      return salary * 0.075;
-    } else if (salary <= 2571.29) {
-      return salary * 0.09;
-    } else if (salary <= 3856.94) {
-      return salary * 0.12;
-    } else if (salary <= 7507.49) {
-      return salary * 0.14;
-    } else {
-      return 1051.05; // Teto do INSS 2023
-    }
-  } catch (error) {
-    console.error('Erro no cálculo do INSS:', error);
-    return 0;
-  }
-}
-
-// Função para calcular IRRF conforme tabela 2023
-function calculateIRRF(salary: number, inss: number): number {
-  try {
-    const baseCalculo = salary - inss;
-    
-    if (baseCalculo <= 2112) {
-      return 0;
-    } else if (baseCalculo <= 2826.65) {
-      return (baseCalculo * 0.075) - 158.40;
-    } else if (baseCalculo <= 3751.05) {
-      return (baseCalculo * 0.15) - 370.40;
-    } else if (baseCalculo <= 4664.68) {
-      return (baseCalculo * 0.225) - 651.73;
-    } else {
-      return (baseCalculo * 0.275) - 884.96;
-    }
-  } catch (error) {
-    console.error('Erro no cálculo do IRRF:', error);
-    return 0;
-  }
-}
-
-// Função para calcular FGTS (8% do salário bruto)
-function calculateFGTS(salary: number): number {
-  try {
-    return salary * 0.08;
-  } catch (error) {
-    console.error('Erro no cálculo do FGTS:', error);
-    return 0;
-  }
-}
-
-// Função para converter string de salário para número
-function parseSalary(salaryStr: string): number {
-  try {
-    if (!salaryStr) return 0;
-    
-    // Remove símbolos monetários e separadores de milhar, substitui vírgula por ponto
-    const cleanedStr = salaryStr.replace(/[^\d,.-]/g, '').replace(',', '.');
-    
-    // Converte para número
-    const salary = parseFloat(cleanedStr);
-    
-    // Verifica se é um número válido
-    return !isNaN(salary) ? salary : 0;
-  } catch (error) {
-    console.error('Erro ao converter salário:', error, 'Para o valor:', salaryStr);
-    return 0;
-  }
-}
+// Definir o modelo se ainda não existe
+const PayrollModel = mongoose.models.Payroll || mongoose.model('Payroll', PayrollSchema);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('Endpoint de folha de pagamento acessado:', {
+    method: req.method,
+    query: req.query
+  });
+
   try {
-    console.log('Endpoint de processamento acessado:', {
-      method: req.method,
-      body: req.method === 'POST' ? req.body : {},
-      query: req.query
-    });
+    // Conectar ao banco de dados
+    await connectToDatabase();
 
-    // Permitir GET para consulta
-    if (req.method === 'GET') {
-      try {
-        // Conectar ao banco de dados
-        await connectToDatabase();
-        
-        // Obter modelo de Holerite
-        const PayrollModel = mongoose.models.Payroll || mongoose.model('Payroll', PayrollSchema);
-        
-        // Obter mês e ano dos parâmetros da query
-        const { month, year } = req.query;
-        
-        if (!month || !year) {
-          return res.status(400).json({ message: 'Mês e ano são obrigatórios' });
-        }
+    // Permitir GET para buscar folhas e POST para processar
+    switch (req.method) {
+      case 'GET':
+        try {
+          const { month, year } = req.query;
 
-        console.log(`Buscando folhas para: ${month}/${year}`);
-
-        // Buscar holerites para o mês e ano especificados
-        const payrolls = await PayrollModel.find({
-          month: parseInt(month as string),
-          year: parseInt(year as string)
-        }).sort({ employeeName: 1 }); // Ordenar por nome do funcionário
-        
-        console.log(`Encontradas ${payrolls.length} folhas para ${month}/${year}`);
-
-        return res.status(200).json({ 
-          message: 'Folhas de pagamento recuperadas com sucesso',
-          payrolls: payrolls 
-        });
-      } catch (error) {
-        console.error('Erro ao buscar folhas de pagamento:', error);
-        return res.status(500).json({ 
-          message: 'Erro ao buscar folhas de pagamento',
-          error: error instanceof Error ? error.message : 'Erro desconhecido',
-          stack: error instanceof Error ? error.stack : null
-        });
-      }
-    }
-    // Verificar se é um método POST para processar folha
-    else if (req.method === 'POST') {
-      try {
-        // Conectar ao banco de dados
-        await connectToDatabase();
-        
-        // Verificar se os modelos já existem para evitar redefinição
-        const PayrollModel = mongoose.models.Payroll || mongoose.model('Payroll', PayrollSchema);
-        
-        // Definir modelo de Worker se não existir
-        const WorkerModel = mongoose.models.Worker || mongoose.model('Worker', WorkerSchema);
-
-        // Obter mês e ano da requisição
-        const { month, year } = req.body;
-        
-        if (!month || !year) {
-          return res.status(400).json({ message: 'Mês e ano são obrigatórios' });
-        }
-
-        console.log(`Processando folha para: ${month}/${year}`);
-
-        // Buscar todos os funcionários ativos
-        const workers = await WorkerModel.find();
-        console.log(`Encontrados ${workers.length} funcionários`);
-
-        if (!workers || workers.length === 0) {
-          return res.status(404).json({ 
-            message: 'Nenhum funcionário encontrado. Cadastre funcionários primeiro.' 
-          });
-        }
-
-        // Deletar folhas existentes para este mês/ano para evitar duplicação
-        await PayrollModel.deleteMany({ 
-          month: parseInt(month.toString()), 
-          year: parseInt(year.toString()) 
-        });
-        console.log(`Folhas existentes para ${month}/${year} foram excluídas`);
-
-        // Array para armazenar as folhas processadas
-        const processedPayrolls = [];
-
-        // Para cada funcionário, calcular os valores e criar um registro de holerite
-        for (const worker of workers) {
-          try {
-            console.log(`Processando funcionário:`, {
-              id: worker._id,
-              name: worker.name,
-              contract: worker.contract,
-              salary: worker.salary
+          // Validar parâmetros
+          if (!month || !year) {
+            return res.status(400).json({
+              message: 'Mês e ano são obrigatórios',
+              query: req.query
             });
-            
-            // Garantir que o tipo de contrato é válido
-            const contractType = worker.contract === 'PJ' ? 'PJ' : 'CLT';
-            
-                      // IMPORTANTE: Converter o salário de string para número
-           // Verifica se o salário está em 'salary' ou 'salario'
-           const salarioStr = worker.salary || worker.salario || "0";
-           let baseSalary = parseSalary(salarioStr);
-           
-           console.log(`Salário convertido para ${worker.name}: ${salarioStr} => ${baseSalary}`);
-           
-           // Verificar se o salário é válido após a conversão
-           if (baseSalary <= 0) {
-             console.warn(`Salário inválido para ${worker.name}: ${salarioStr} (convertido para ${baseSalary})`);
-             
-             // Tentar obter o valor numérico removendo todos os caracteres não numéricos
-             const numericValue = salarioStr.replace(/\D/g, '');
-             if (numericValue && numericValue !== '0') {
-               // Se ainda houver dígitos, converta para número e divida por 100 para lidar com centavos
-               baseSalary = parseInt(numericValue) / 100;
-               console.log(`Tentativa alternativa de conversão: ${baseSalary}`);
-             } else {
-               // Adicionar um console.log para depuração
-               console.error(`Não foi possível determinar o salário para ${worker.name}.`);
-               console.log('Conteúdo do objeto worker:', JSON.stringify(worker, null, 2));
-             }
-           }
-            
-            // Valores adicionais
-            const overtimePay = 0;
-            const overtimeHours = 0;
-            
-            // Cálculos de descontos
-            let inss = 0;
-            let irrf = 0;
-            let fgts = 0;
-            let deductions = 0;
-            
-            // Cálculos específicos para CLT
-            if (contractType === 'CLT') {
-              inss = calculateINSS(baseSalary);
-              irrf = calculateIRRF(baseSalary, inss);
-              fgts = calculateFGTS(baseSalary);
-              deductions = inss + irrf;
-            }
-            
-            // Cálculo do salário líquido
-            const totalSalary = baseSalary - deductions + overtimePay;
-            
-            // Criar objeto do holerite
-            const payroll: IPayroll = {
-              employeeId: worker._id,
-              employeeName: worker.name,
-              contract: contractType,
-              month: parseInt(month.toString()),
-              year: parseInt(year.toString()),
-              baseSalary: baseSalary,
-              overtimePay: overtimePay,
-              overtimeHours: overtimeHours,
-              deductions: parseFloat(deductions.toFixed(2)),
-              totalSalary: parseFloat(totalSalary.toFixed(2)),
-              status: 'processed',
-              processedAt: new Date()
-            };
-            
-            // Adicionar campos específicos para CLT
-            if (contractType === 'CLT') {
-              payroll.inss = parseFloat(inss.toFixed(2));
-              payroll.irrf = parseFloat(irrf.toFixed(2));
-              payroll.fgts = parseFloat(fgts.toFixed(2));
-            }
-            
-            // Benefícios padrão (pode ser customizado no futuro)
-            payroll.benefits = {
-              valeTransporte: 0,
-              valeRefeicao: 0,
-              planoSaude: 0
-            };
-            
-            // Verificar se os valores estão válidos antes de salvar
-            console.log(`Valores calculados para ${worker.name}:`, {
-              baseSalary: payroll.baseSalary,
-              deductions: payroll.deductions,
-              totalSalary: payroll.totalSalary
-            });
-            
-            // Criar novo registro no banco de dados
-            const newPayroll = new PayrollModel(payroll);
-            await newPayroll.save();
-            
-            processedPayrolls.push(newPayroll);
-            console.log(`Holerite processado para ${worker.name}`);
-          } catch (workerError) {
-            console.error(`Erro ao processar funcionário ${worker?.name || 'desconhecido'}:`, workerError);
-            // Continua para o próximo funcionário
           }
-        }
 
-        // Verificar se processou algum holerite
-        if (processedPayrolls.length === 0) {
-          return res.status(500).json({ 
-            message: 'Nenhum holerite foi processado. Verifique os logs para mais detalhes.'
+          console.log(`Buscando folhas para: ${month}/${year}`);
+
+          // Buscar holerites para o mês e ano especificados
+          const payrolls = await PayrollModel.find({
+            month: parseInt(month as string),
+            year: parseInt(year as string)
+          }).sort({ employeeName: 1 });
+
+          console.log(`Encontradas ${payrolls.length} folhas para ${month}/${year}`);
+
+          return res.status(200).json({
+            message: 'Folhas de pagamento recuperadas com sucesso',
+            payrolls
+          });
+        } catch (error) {
+          console.error('Erro ao buscar folhas de pagamento:', error);
+          return res.status(500).json({
+            message: 'Erro ao buscar folhas de pagamento',
+            error: error instanceof Error ? error.message : 'Erro desconhecido'
           });
         }
 
-        // Ordenar por nome do funcionário
-        processedPayrolls.sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+      case 'POST':
+        try {
+          const { month, year } = req.body;
 
-        return res.status(200).json({ 
-          message: 'Folha de pagamento processada com sucesso',
-          payrolls: processedPayrolls 
-        });
-      } catch (error) {
-        console.error('Erro ao processar folha de pagamento:', error);
-        return res.status(500).json({ 
-          message: 'Erro ao processar folha de pagamento',
-          error: error instanceof Error ? error.message : 'Erro desconhecido',
-          stack: error instanceof Error ? error.stack : null
-        });
-      }
-    } 
-    // Método não permitido
-    else {
-      res.setHeader('Allow', ['GET', 'POST']);
-      return res.status(405).end(`Method ${req.method} Not Allowed`);
+          if (!month || !year) {
+            return res.status(400).json({
+              message: 'Mês e ano são obrigatórios',
+              body: req.body
+            });
+          }
+
+          console.log(`Processando folha para: ${month}/${year}`);
+
+          // Buscar todos os funcionários ativos
+          const workers: IWorker[] = await mongoose.model('Worker').find({ status: 'active' });
+
+          if (!workers || workers.length === 0) {
+            return res.status(404).json({
+              message: 'Nenhum funcionário encontrado. Cadastre funcionários primeiro.'
+            });
+          }
+
+          // Deletar folhas existentes para este mês/ano
+          await PayrollModel.deleteMany({
+            month: parseInt(month.toString()),
+            year: parseInt(year.toString())
+          });
+          console.log(`Folhas existentes para ${month}/${year} foram excluídas`);
+
+          // Array para armazenar as folhas processadas
+          const processedPayrolls: IPayroll[] = [];
+
+          // Processar cada funcionário
+          for (const worker of workers) {
+            try {
+              // Obter salário base do funcionário
+              const baseSalary = parseFloat(worker.salario || '0');
+
+              // Função para calcular INSS (tabela 2024)
+              const calculateINSS = (salary: number): number => {
+                const inssRanges = [
+                  { max: 1320.00, rate: 0.075 },
+                  { max: 2571.29, rate: 0.09 },
+                  { max: 3856.94, rate: 0.12 },
+                  { max: 7507.49, rate: 0.14 }
+                ];
+
+                let inss = 0;
+                let remainingSalary = salary;
+                let previousMax = 0;
+
+                for (const range of inssRanges) {
+                  if (remainingSalary > 0) {
+                    const baseCalc = Math.min(remainingSalary, range.max - previousMax);
+                    inss += baseCalc * range.rate;
+                    remainingSalary -= baseCalc;
+                    previousMax = range.max;
+                  }
+                }
+
+                return Number(inss.toFixed(2));
+              };
+
+              // Função para calcular IRRF (tabela 2024)
+              const calculateIRRF = (salary: number, inss: number): number => {
+                const baseCalc = salary - inss;
+
+                if (baseCalc <= 2259.20) return 0;
+                if (baseCalc <= 2826.65) return (baseCalc * 0.075) - 169.44;
+                if (baseCalc <= 3751.05) return (baseCalc * 0.15) - 381.44;
+                if (baseCalc <= 4664.68) return (baseCalc * 0.225) - 662.77;
+                return (baseCalc * 0.275) - 896.00;
+              };
+
+              // Função para calcular FGTS
+              const calculateFGTS = (salary: number): number => {
+                return Number((salary * 0.08).toFixed(2));
+              };
+
+              // No processamento de cada funcionário
+              let inss = 0;
+              let fgts = 0;
+              let irrf = 0;
+              let deductions = 0;
+              
+              if (worker.contract === 'CLT') {
+                // Cálculo do INSS (progressivo)
+                inss = calculateINSS(baseSalary);
+
+                // Cálculo do FGTS
+                fgts = calculateFGTS(baseSalary);
+
+                // Cálculo do IRRF (considerando INSS)
+                irrf = calculateIRRF(baseSalary, inss);
+
+                // Total de deduções
+                deductions = inss + irrf;
+              }
+
+              // Cálculo do salário líquido
+              const totalSalary = baseSalary - deductions;
+              
+              // Criar objeto do holerite
+              const payroll = {
+                employeeId: worker._id,
+                employeeName: worker.name,
+                contract: worker.contract,
+                month: parseInt(month.toString()),
+                year: parseInt(year.toString()),
+                baseSalary,
+                deductions,
+                totalSalary,
+                inss,
+                fgts,
+                irrf,
+                status: 'processed' as const,
+                processedAt: new Date()
+              };
+              
+              // Salvar no MongoDB
+              const savedPayroll = await PayrollModel.create(payroll);
+              processedPayrolls.push(savedPayroll);
+
+            } catch (workerError) {
+              console.error(`Erro ao processar funcionário ${worker.name}:`, workerError);
+            }
+          }
+
+          return res.status(200).json({
+            message: 'Folha de pagamento processada com sucesso',
+            payrolls: processedPayrolls
+          });
+        } catch (error) {
+          console.error('Erro ao processar folha de pagamento:', error);
+          return res.status(500).json({
+            message: 'Erro ao processar folha de pagamento',
+            error: error instanceof Error ? error.message : 'Erro desconhecido'
+          });
+        }
+
+      default:
+        res.setHeader('Allow', ['GET', 'POST']);
+        return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
   } catch (topLevelError) {
     console.error('Erro crítico no handler:', topLevelError);
     return res.status(500).json({
       message: 'Erro crítico no processamento',
-      error: topLevelError instanceof Error ? topLevelError.message : 'Erro desconhecido',
-      stack: topLevelError instanceof Error ? topLevelError.stack : null
+      error: topLevelError instanceof Error ? topLevelError.message : 'Erro desconhecido'
     });
   }
 }
