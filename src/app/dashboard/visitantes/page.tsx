@@ -1,20 +1,33 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback } from 'react'
-import axios from 'axios'
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from '@/components/ui/table'
+import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
-} from '@/components/ui/dialog'
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Trash2, Check, Loader2, PencilIcon } from 'lucide-react'
-import { ButtonGlitchBrightness } from '@/components/ui/ButtonGlitch'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Trash2, Check, Loader2, PencilIcon } from "lucide-react";
+import { ButtonGlitchBrightness } from "@/components/ui/ButtonGlitch";
 // Removed unused import: import { iVisitor } from '@/models/Visitors'
 
 // Just extend the MongoDB model for UI purposes
@@ -38,118 +51,167 @@ type VisitorInput = {
   phone: string;
   email: string;
   address: string;
-}
+};
 
 export default function VisitorsPage() {
-  const [visitors, setVisitors] = useState<UiVisitor[]>([])
+  const [visitors, setVisitors] = useState<UiVisitor[]>([]);
   const [newVisitor, setNewVisitor] = useState<VisitorInput>({
-    name: '',
-    rg: '',
-    cpf: '',
-    phone: '',
-    email: '',
-    address: '',
-  })
-  const [editingVisitor, setEditingVisitor] = useState<UiVisitor | null>(null)
-  const [filter, setFilter] = useState({ name: '', cpf: '', address: '' })
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [statusMessage, setStatusMessage] = useState({ text: '', isError: false })
+    name: "",
+    rg: "",
+    cpf: "",
+    phone: "",
+    email: "",
+    address: "",
+  });
+  const [editingVisitor, setEditingVisitor] = useState<UiVisitor | null>(null);
+  const [filter, setFilter] = useState({ name: "", cpf: "", address: "" });
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [statusMessage, setStatusMessage] = useState({
+    text: "",
+    isError: false,
+  });
 
-  // Convert MongoDB visitor to UI format
-  const convertVisitorData = useCallback((visitor: UiVisitor): UiVisitor => {
-    if (!visitor) return {
-      id: '',
-      name: '',
-      rg: '',
-      cpf: '',
-      phone: '',
-      email: '',
-      address: '',
-    };
-    
-    return {
-      id: visitor.id || '',
-      name: visitor.name || '',
-      rg: visitor.rg || '',
-      cpf: visitor.cpf || '',
-      phone: visitor.phone || '',
-      email: visitor.email || '',
-      address: visitor.address || '',
-      entryTime: visitor.logs && visitor.logs.length > 0
-        ? new Date(visitor.logs[visitor.logs.length - 1].entryTime).toLocaleString('pt-BR')
-        : undefined,
-      exitTime: visitor.logs && visitor.logs.length > 0 && visitor.logs[visitor.logs.length - 1].leaveTime
-        ? new Date(visitor.logs[visitor.logs.length - 1].leaveTime as string).toLocaleString('pt-BR')
-        : undefined
+  // Modifique a função convertVisitorData para tratar corretamente os IDs:
+  interface VisitorData {
+    _id?: string;
+    id?: string;
+    name?: string;
+    rg?: string;
+    cpf?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    logs?: { entryTime: string; leaveTime?: string }[];
+  }
+
+  const convertVisitorData = useCallback((visitor: VisitorData): UiVisitor => {
+    if (!visitor)
+      return {
+        id: "",
+        name: "",
+        rg: "",
+        cpf: "",
+        phone: "",
+        email: "",
+        address: "",
+      };
+
+    // Extrair o ID do documento MongoDB corretamente
+    const visitorId = visitor._id ? visitor._id.toString() : visitor.id || "";
+
+    let entryTime = undefined;
+    let exitTime = undefined;
+
+    // Tratamento seguro para as datas
+    try {
+      if (visitor.logs && visitor.logs.length > 0) {
+        const lastLog = visitor.logs[visitor.logs.length - 1];
+
+        if (lastLog.entryTime) {
+          entryTime = new Date(lastLog.entryTime).toLocaleString("pt-BR");
+        }
+
+        if (lastLog.leaveTime) {
+          exitTime = new Date(lastLog.leaveTime).toLocaleString("pt-BR");
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao processar datas do visitante:", error);
     }
-  }, [])
+
+    return {
+      id: visitorId,
+      name: visitor.name || "",
+      rg: visitor.rg || "",
+      cpf: visitor.cpf || "",
+      phone: visitor.phone || "",
+      email: visitor.email || "",
+      address: visitor.address || "",
+      entryTime,
+      exitTime,
+      logs: visitor.logs || [],
+    };
+  }, []);
 
   // Fetch all visitors
   const fetchVisitors = useCallback(async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const response = await axios.get('/api/visitors')
+      const response = await axios.get("/api/visitors");
       if (Array.isArray(response.data)) {
-        const mappedVisitors = response.data.map(convertVisitorData)
-        setVisitors(mappedVisitors)
+        const mappedVisitors = response.data.map(convertVisitorData);
+        setVisitors(mappedVisitors);
       } else {
-        setVisitors([])
+        setVisitors([]);
       }
     } catch (error) {
-      console.error('Failed to fetch visitors:', error)
-      setStatusMessage({ text: 'Falha ao carregar visitantes', isError: true })
+      console.error("Failed to fetch visitors:", error);
+      setStatusMessage({ text: "Falha ao carregar visitantes", isError: true });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [convertVisitorData])
+  }, [convertVisitorData]);
 
   // Add new visitor
   const handleAddVisitor = async () => {
     // Validate required fields
-    if (!newVisitor.name || !newVisitor.cpf || !newVisitor.rg || !newVisitor.phone || !newVisitor.email || !newVisitor.address) {
-      setStatusMessage({ text: 'Preencha todos os campos obrigatórios', isError: true })
-      return
+    if (
+      !newVisitor.name ||
+      !newVisitor.cpf ||
+      !newVisitor.rg ||
+      !newVisitor.phone ||
+      !newVisitor.email ||
+      !newVisitor.address
+    ) {
+      setStatusMessage({
+        text: "Preencha todos os campos obrigatórios",
+        isError: true,
+      });
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      await axios.post('/api/visitors', {
+      await axios.post("/api/visitors", {
         ...newVisitor,
-        logs: [{ entryTime: new Date() }]
-      })
-      
+        logs: [{ entryTime: new Date() }],
+      });
+
       // Reset form and close dialog
       setNewVisitor({
-        name: '',
-        rg: '',
-        cpf: '',
-        phone: '',
-        email: '',
-        address: '',
-      })
-      setIsAddDialogOpen(false)
-      
+        name: "",
+        rg: "",
+        cpf: "",
+        phone: "",
+        email: "",
+        address: "",
+      });
+      setIsAddDialogOpen(false);
+
       // Refresh visitors list
-      await fetchVisitors()
-      setStatusMessage({ text: 'Visitante adicionado com sucesso', isError: false })
+      await fetchVisitors();
+      setStatusMessage({
+        text: "Visitante adicionado com sucesso",
+        isError: false,
+      });
     } catch (error) {
-      console.error('Failed to add visitor:', error)
-      setStatusMessage({ text: 'Falha ao adicionar visitante', isError: true })
+      console.error("Failed to add visitor:", error);
+      setStatusMessage({ text: "Falha ao adicionar visitante", isError: true });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Update visitor
   const handleUpdateVisitor = async () => {
-    if (!editingVisitor) return
-    
-    setIsLoading(true)
+    if (!editingVisitor) return;
+
+    setIsLoading(true);
     try {
-      await axios.put('/api/visitors', {
+      await axios.put("/api/visitors", {
         id: editingVisitor.id,
         update: {
           name: editingVisitor.name,
@@ -157,134 +219,153 @@ export default function VisitorsPage() {
           cpf: editingVisitor.cpf,
           phone: editingVisitor.phone,
           email: editingVisitor.email,
-          address: editingVisitor.address
-        }
-      })
-      
-      setIsEditDialogOpen(false)
-      setEditingVisitor(null)
-      await fetchVisitors()
-      setStatusMessage({ text: 'Visitante atualizado com sucesso', isError: false })
+          address: editingVisitor.address,
+        },
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingVisitor(null);
+      await fetchVisitors();
+      setStatusMessage({
+        text: "Visitante atualizado com sucesso",
+        isError: false,
+      });
     } catch (error) {
-      console.error('Failed to update visitor:', error)
-      setStatusMessage({ text: 'Falha ao atualizar visitante', isError: true })
+      console.error("Failed to update visitor:", error);
+      setStatusMessage({ text: "Falha ao atualizar visitante", isError: true });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Register visitor exit
   const handleRegisterExit = async (visitorId: string) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      await axios.put('/api/visitors', {
+      await axios.put("/api/visitors", {
         id: visitorId,
-        action: 'saida'
-      })
-      
-      await fetchVisitors()
-      setStatusMessage({ text: 'Saída registrada com sucesso', isError: false })
+        action: "saida",
+      });
+
+      await fetchVisitors();
+      setStatusMessage({
+        text: "Saída registrada com sucesso",
+        isError: false,
+      });
     } catch (error) {
-      console.error('Failed to register exit:', error)
-      setStatusMessage({ text: 'Falha ao registrar saída', isError: true })
+      console.error("Failed to register exit:", error);
+      setStatusMessage({ text: "Falha ao registrar saída", isError: true });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Delete visitor
   const handleDeleteVisitor = async (visitorId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este visitante?')) return
-    
-    setIsLoading(true)
+    if (!confirm("Tem certeza que deseja excluir este visitante?")) return;
+
+    setIsLoading(true);
     try {
-      await axios.delete('/api/visitors', {
-        data: { id: visitorId }
-      })
-      
-      await fetchVisitors()
-      setStatusMessage({ text: 'Visitante excluído com sucesso', isError: false })
+      await axios.delete("/api/visitors", {
+        data: { id: visitorId },
+      });
+
+      await fetchVisitors();
+      setStatusMessage({
+        text: "Visitante excluído com sucesso",
+        isError: false,
+      });
     } catch (error) {
-      console.error('Failed to delete visitor:', error)
-      setStatusMessage({ text: 'Falha ao excluir visitante', isError: true })
+      console.error("Failed to delete visitor:", error);
+      setStatusMessage({ text: "Falha ao excluir visitante", isError: true });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Filter visitors
   const handleFilter = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const response = await axios.get('/api/visitors')
-      
+      const response = await axios.get("/api/visitors");
+
       if (!Array.isArray(response.data)) {
-        setVisitors([])
-        return
+        setVisitors([]);
+        return;
       }
-      
-      let filteredVisitors = response.data.map(convertVisitorData)
-      
+
+      let filteredVisitors = response.data.map(convertVisitorData);
+
       if (filter.name) {
-        filteredVisitors = filteredVisitors.filter((v) => 
-          v.name && v.name.toLowerCase().includes(filter.name.toLowerCase())
-        )
+        filteredVisitors = filteredVisitors.filter(
+          (v) =>
+            v.name && v.name.toLowerCase().includes(filter.name.toLowerCase())
+        );
       }
-      
+
       if (filter.cpf) {
-        filteredVisitors = filteredVisitors.filter((v) => 
-          v.cpf && v.cpf.includes(filter.cpf)
-        )
+        filteredVisitors = filteredVisitors.filter(
+          (v) => v.cpf && v.cpf.includes(filter.cpf)
+        );
       }
-      
+
       if (filter.address) {
-        filteredVisitors = filteredVisitors.filter((v) => 
-          v.address && v.address.toLowerCase().includes(filter.address.toLowerCase())
-        )
+        filteredVisitors = filteredVisitors.filter(
+          (v) =>
+            v.address &&
+            v.address.toLowerCase().includes(filter.address.toLowerCase())
+        );
       }
-      
-      setVisitors(filteredVisitors)
+
+      setVisitors(filteredVisitors);
     } catch (error) {
-      console.error('Failed to filter visitors:', error)
-      setStatusMessage({ text: 'Falha ao filtrar visitantes', isError: true })
+      console.error("Failed to filter visitors:", error);
+      setStatusMessage({ text: "Falha ao filtrar visitantes", isError: true });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Set up editing visitor
   const startEditing = (visitor: UiVisitor) => {
-    setEditingVisitor(visitor)
-    setIsEditDialogOpen(true)
-  }
-  
+    setEditingVisitor(visitor);
+    setIsEditDialogOpen(true);
+  };
+
   // Load visitors on page load
   useEffect(() => {
-    fetchVisitors()
-  }, [fetchVisitors])
+    fetchVisitors();
+  }, [fetchVisitors]);
 
   return (
     <div className="space-y-6">
       {/* Status Message */}
       {statusMessage.text && (
-        <div className={`p-4 rounded-md ${statusMessage.isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+        <div
+          className={`p-4 rounded-md ${
+            statusMessage.isError
+              ? "bg-red-100 text-red-800"
+              : "bg-green-100 text-green-800"
+          }`}
+        >
           {statusMessage.text}
-          <button 
-            className="ml-4 text-sm underline" 
-            onClick={() => setStatusMessage({ text: '', isError: false })}>
+          <button
+            className="ml-4 text-sm underline"
+            onClick={() => setStatusMessage({ text: "", isError: false })}
+          >
             Fechar
           </button>
         </div>
       )}
-      
+
       {/* Header with Add Button */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Visitantes</h1>
-        
+
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <ButtonGlitchBrightness 
-              text="Adicionar Visitante" 
+            <ButtonGlitchBrightness
+              text="Adicionar Visitante"
               className="bg-black hover:bg-gray-600 dark:bg-blue-500/80 transition-all ease-in-out"
             />
           </DialogTrigger>
@@ -295,49 +376,61 @@ export default function VisitorsPage() {
             <div className="space-y-4 py-4 flex flex-col items-center justify-center">
               <div className="space-y-2">
                 <label htmlFor="name">Nome Completo*</label>
-                <Input 
-                  id="name" 
-                  value={newVisitor.name} 
-                  onChange={(e) => setNewVisitor({...newVisitor, name: e.target.value})}
+                <Input
+                  id="name"
+                  value={newVisitor.name}
+                  onChange={(e) =>
+                    setNewVisitor({ ...newVisitor, name: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <label htmlFor="rg">RG*</label>
-                <Input 
-                  id="rg" 
-                  value={newVisitor.rg} 
-                  onChange={(e) => setNewVisitor({...newVisitor, rg: e.target.value})}
+                <Input
+                  id="rg"
+                  value={newVisitor.rg}
+                  onChange={(e) =>
+                    setNewVisitor({ ...newVisitor, rg: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <label htmlFor="cpf">CPF*</label>
-                <Input 
-                  id="cpf" 
-                  value={newVisitor.cpf} 
-                  onChange={(e) => setNewVisitor({...newVisitor, cpf: e.target.value})}
+                <Input
+                  id="cpf"
+                  value={newVisitor.cpf}
+                  onChange={(e) =>
+                    setNewVisitor({ ...newVisitor, cpf: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <label htmlFor="phone">Telefone*</label>
-                <Input 
-                  id="phone" 
-                  value={newVisitor.phone} 
-                  onChange={(e) => setNewVisitor({...newVisitor, phone: e.target.value})}
+                <Input
+                  id="phone"
+                  value={newVisitor.phone}
+                  onChange={(e) =>
+                    setNewVisitor({ ...newVisitor, phone: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <label htmlFor="email">Email*</label>
-                <Input 
-                  id="email" 
-                  value={newVisitor.email} 
-                  onChange={(e) => setNewVisitor({...newVisitor, email: e.target.value})}
+                <Input
+                  id="email"
+                  value={newVisitor.email}
+                  onChange={(e) =>
+                    setNewVisitor({ ...newVisitor, email: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <label htmlFor="address">Setor*</label>
-                <Select 
-                  value={newVisitor.address} 
-                  onValueChange={(value) => setNewVisitor({...newVisitor, address: value})}
+                <Select
+                  value={newVisitor.address}
+                  onValueChange={(value) =>
+                    setNewVisitor({ ...newVisitor, address: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um setor" />
@@ -346,11 +439,13 @@ export default function VisitorsPage() {
                     <SelectItem value="TI">TI</SelectItem>
                     <SelectItem value="RH">RH</SelectItem>
                     <SelectItem value="Financeiro">Financeiro</SelectItem>
-                    <SelectItem value="Administrativo">Administrativo</SelectItem>
+                    <SelectItem value="Administrativo">
+                      Administrativo
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <ButtonGlitchBrightness 
+              <ButtonGlitchBrightness
                 text={isLoading ? "Adicionando..." : "Adicionar"}
                 onClick={handleAddVisitor}
                 disabled={isLoading}
@@ -363,28 +458,30 @@ export default function VisitorsPage() {
 
       {/* Filtros */}
       <div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={() => setIsFilterOpen(!isFilterOpen)}
         >
           {isFilterOpen ? "Esconder Filtros" : "Mostrar Filtros"}
         </Button>
-        
+
         {isFilterOpen && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <Input 
-              placeholder="Nome" 
-              value={filter.name} 
-              onChange={(e) => setFilter({...filter, name: e.target.value})}
+            <Input
+              placeholder="Nome"
+              value={filter.name}
+              onChange={(e) => setFilter({ ...filter, name: e.target.value })}
             />
-            <Input 
-              placeholder="CPF" 
-              value={filter.cpf} 
-              onChange={(e) => setFilter({...filter, cpf: e.target.value})}
+            <Input
+              placeholder="CPF"
+              value={filter.cpf}
+              onChange={(e) => setFilter({ ...filter, cpf: e.target.value })}
             />
-            <Select 
-              value={filter.address} 
-              onValueChange={(value) => setFilter({...filter, address: value})}
+            <Select
+              value={filter.address}
+              onValueChange={(value) =>
+                setFilter({ ...filter, address: value })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os setores" />
@@ -396,7 +493,7 @@ export default function VisitorsPage() {
                 <SelectItem value="Administrativo">Administrativo</SelectItem>
               </SelectContent>
             </Select>
-            <ButtonGlitchBrightness 
+            <ButtonGlitchBrightness
               text={isLoading ? "Filtrando..." : "Filtrar"}
               onClick={handleFilter}
               disabled={isLoading}
@@ -436,21 +533,21 @@ export default function VisitorsPage() {
               </TableCell>
             </TableRow>
           ) : (
-            visitors.map((visitor) => (
-              <TableRow key={visitor.id}>
+            visitors.map((visitor, index) => (
+              <TableRow key={visitor.id || `visitor-${index}`}>
                 <TableCell className="font-medium">{visitor.name}</TableCell>
                 <TableCell>{visitor.cpf}</TableCell>
                 <TableCell>{visitor.rg}</TableCell>
                 <TableCell>{visitor.phone}</TableCell>
                 <TableCell>{visitor.email}</TableCell>
                 <TableCell>{visitor.address}</TableCell>
-                <TableCell>{visitor.entryTime || '-'}</TableCell>
-                <TableCell>{visitor.exitTime || '-'}</TableCell>
+                <TableCell>{visitor.entryTime || "-"}</TableCell>
+                <TableCell>{visitor.exitTime || "-"}</TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
+                    <Button
+                      variant="outline"
+                      size="icon"
                       className="text-blue-500 hover:text-blue-700 hover:bg-blue-100"
                       onClick={() => startEditing(visitor)}
                       disabled={isLoading}
@@ -458,9 +555,9 @@ export default function VisitorsPage() {
                       <PencilIcon size={16} />
                     </Button>
                     {!visitor.exitTime && (
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
+                      <Button
+                        variant="outline"
+                        size="icon"
                         className="text-green-500 hover:text-green-700 hover:bg-green-100"
                         onClick={() => handleRegisterExit(visitor.id)}
                         disabled={isLoading}
@@ -468,9 +565,9 @@ export default function VisitorsPage() {
                         <Check size={16} />
                       </Button>
                     )}
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
+                    <Button
+                      variant="outline"
+                      size="icon"
                       className="text-red-500 hover:text-red-700 hover:bg-red-100"
                       onClick={() => handleDeleteVisitor(visitor.id)}
                       disabled={isLoading}
@@ -495,49 +592,73 @@ export default function VisitorsPage() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <label htmlFor="edit-name">Nome Completo*</label>
-                <Input 
-                  id="edit-name" 
-                  value={editingVisitor.name} 
-                  onChange={(e) => setEditingVisitor({...editingVisitor, name: e.target.value})}
+                <Input
+                  id="edit-name"
+                  value={editingVisitor.name}
+                  onChange={(e) =>
+                    setEditingVisitor({
+                      ...editingVisitor,
+                      name: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <label htmlFor="edit-rg">RG*</label>
-                <Input 
-                  id="edit-rg" 
-                  value={editingVisitor.rg} 
-                  onChange={(e) => setEditingVisitor({...editingVisitor, rg: e.target.value})}
+                <Input
+                  id="edit-rg"
+                  value={editingVisitor.rg}
+                  onChange={(e) =>
+                    setEditingVisitor({ ...editingVisitor, rg: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <label htmlFor="edit-cpf">CPF*</label>
-                <Input 
-                  id="edit-cpf" 
-                  value={editingVisitor.cpf} 
-                  onChange={(e) => setEditingVisitor({...editingVisitor, cpf: e.target.value})}
+                <Input
+                  id="edit-cpf"
+                  value={editingVisitor.cpf}
+                  onChange={(e) =>
+                    setEditingVisitor({
+                      ...editingVisitor,
+                      cpf: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <label htmlFor="edit-phone">Telefone*</label>
-                <Input 
-                  id="edit-phone" 
-                  value={editingVisitor.phone} 
-                  onChange={(e) => setEditingVisitor({...editingVisitor, phone: e.target.value})}
+                <Input
+                  id="edit-phone"
+                  value={editingVisitor.phone}
+                  onChange={(e) =>
+                    setEditingVisitor({
+                      ...editingVisitor,
+                      phone: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <label htmlFor="edit-email">Email*</label>
-                <Input 
-                  id="edit-email" 
-                  value={editingVisitor.email} 
-                  onChange={(e) => setEditingVisitor({...editingVisitor, email: e.target.value})}
+                <Input
+                  id="edit-email"
+                  value={editingVisitor.email}
+                  onChange={(e) =>
+                    setEditingVisitor({
+                      ...editingVisitor,
+                      email: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <label htmlFor="edit-address">Setor*</label>
-                <Select 
-                  value={editingVisitor.address} 
-                  onValueChange={(value) => setEditingVisitor({...editingVisitor, address: value})}
+                <Select
+                  value={editingVisitor.address}
+                  onValueChange={(value) =>
+                    setEditingVisitor({ ...editingVisitor, address: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um setor" />
@@ -546,11 +667,13 @@ export default function VisitorsPage() {
                     <SelectItem value="TI">TI</SelectItem>
                     <SelectItem value="RH">RH</SelectItem>
                     <SelectItem value="Financeiro">Financeiro</SelectItem>
-                    <SelectItem value="Administrativo">Administrativo</SelectItem>
+                    <SelectItem value="Administrativo">
+                      Administrativo
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <ButtonGlitchBrightness 
+              <ButtonGlitchBrightness
                 text={isLoading ? "Salvando..." : "Salvar Alterações"}
                 onClick={handleUpdateVisitor}
                 disabled={isLoading}
@@ -561,5 +684,5 @@ export default function VisitorsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
