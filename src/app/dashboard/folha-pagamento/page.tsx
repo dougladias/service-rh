@@ -262,7 +262,7 @@ export default function PayrollPage() {
                   <SelectValue placeholder="Ano" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[2023, 2024, 2025].map(y => (
+                  {[2025, 2026, 2027].map(y => (
                     <SelectItem key={y} value={y.toString()}>
                       {y}
                     </SelectItem>

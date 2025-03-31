@@ -55,12 +55,22 @@ interface Holerite {
 }
 
 const months = [
-  { value: '3/2024', label: 'Março/2024' },
-  { value: '2/2024', label: 'Fevereiro/2024' },
+  { value: '1/2025', label: 'Janeiro/2025' },
+  { value: '2/2025', label: 'Fevereiro/2025' },
+  { value: '3/2025', label: 'Março/2025' },
+  { value: '4/2025', label: 'Abril/2025' },
+  { value: '5/2025', label: 'Maio/2025' },
+  { value: '6/2025', label: 'Junho/2025' },
+  { value: '7/2025', label: 'Julho/2025' },
+  { value: '8/2025', label: 'Agosto/2025' },
+  { value: '9/2025', label: 'Setembro/2025' },
+  { value: '10/2025', label: 'Outubro/2025' },
+  { value: '11/2025', label: 'Novembro/2025' },
+  { value: '12/2025', label: 'Dezembro/2025' }  
 ]
 
 export default function HoleritesPage() {
-  const [selectedMonth, setSelectedMonth] = useState('3/2024')
+  const [selectedMonth, setSelectedMonth] = useState('1/2025')
   const [searchTerm, setSearchTerm] = useState('')
   const [viewHolerite, setViewHolerite] = useState(false)
   const [selectedHolerite, setSelectedHolerite] = useState<Holerite | null>(null)
