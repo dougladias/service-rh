@@ -1,4 +1,4 @@
-// src/pages/api/reports/financial.ts
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { connectToDatabase } from '@/api/mongodb';
 import mongoose from 'mongoose';
@@ -41,22 +41,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const query: {
       month: number;
       year: number;
-      department?: string;
     } = {
       month: parseInt(month as string),
       year: parseInt(year as string)
     };
-
-    // Filtrar por departamento se necessário
-    if (department) {
-      if (department === 'noDepartment') {
-        // Filtrar para funcionários sem departamento
-        query.department = undefined;
-      } else if (department !== 'all') {
-        // Filtrar para um departamento específico
-        query.department = department as string;
-      }
-    }
 
     // Buscar dados completos da folha
     const payrolls = await PayrollModel.find(query).lean();
@@ -65,10 +53,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const employeeIds = payrolls.map(p => p.employeeId);
     const workers = await Worker.find({
       _id: { $in: employeeIds }
-    }).lean<Array<{
-      _id: mongoose.Types.ObjectId | string;
-      department?: string;
-    }>>();
+    }).lean();
+
+    // Criar um mapa para facilitar o acesso aos dados do funcionário
+    const workerMap: Record<string, typeof workers[0]> = {};
+    workers.forEach(worker => {
+      workerMap[String(worker._id)] = worker;
+    });
 
     // Buscar benefícios ativos dos funcionários
     const benefits = await EmployeeBenefit.find({
@@ -77,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }).populate('benefitTypeId').lean();
 
     // Agrupar benefícios por funcionário
-    const benefitsByEmployee = benefits.reduce<Record<string, typeof benefits[0][]>>((acc, benefit) => {
+    const benefitsByEmployee = benefits.reduce((acc: Record<string, typeof benefits>, benefit) => {
       const empId = benefit.employeeId.toString();
       if (!acc[empId]) {
         acc[empId] = [];
@@ -98,14 +89,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       totalNetSalary: 0
     };
 
-    // Processar dados por departamento
-    const departmentData: Record<string, {
-      department: string;
-      employees: number;
-      totalBase: number;
-      totalExtra: number;
-      totalNet: number;
-    }> = {};
+    // Processar dados por departamento (usando role como departamento)
+    const departmentData: Record<string, { department: string; employees: number; totalBase: number; totalExtra: number; totalNet: number }> = {};
 
     // Calcular totais de benefícios
     let transportVoucher = 0;
@@ -140,10 +125,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      // Agregar por departamento
-      const worker = workers.find(w => w._id.toString() === payroll.employeeId.toString());
-      const dept = worker?.department || payroll.department || 'Sem Departamento';
+      // Procurar o funcionário correspondente e usar seu role como departamento
+      const worker = workerMap[payroll.employeeId.toString()];
+      const dept = worker?.role || 'Sem Departamento';
 
+      // Filtrar por departamento se necessário
+      if (department && department !== 'all') {
+        if (department === 'noDepartment' && dept !== 'Sem Departamento') {
+          continue; // Pular, pois estamos procurando apenas 'Sem Departamento'
+        } else if (department !== 'noDepartment' && dept !== department) {
+          continue; // Pular, pois não corresponde ao departamento filtrado
+        }
+      }
+
+      // Agregar dados do departamento
       if (!departmentData[dept]) {
         departmentData[dept] = {
           department: dept,

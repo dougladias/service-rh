@@ -427,7 +427,7 @@ export default function RelatoriosPage() {
           <div className="w-full md:w-64">
             <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione o departamento" />
+                <SelectValue placeholder="Selecione o cargo" />
               </SelectTrigger>
               <SelectContent>
                 {departments.map(dept => (
@@ -468,7 +468,6 @@ export default function RelatoriosPage() {
               <PieChartIcon className="mr-2 h-4 w-4" /> Impostos e Encargos
             </TabsTrigger>
           </TabsList>
-          
           {/* Aba de Resumo Geral */}
           <TabsContent value="resumo" className="space-y-4 mt-4">
             <Card>
@@ -502,7 +501,6 @@ export default function RelatoriosPage() {
                 </div>
               </CardContent>
             </Card>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
@@ -517,7 +515,6 @@ export default function RelatoriosPage() {
                   </p>
                 </CardContent>
               </Card>
-              
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Total Descontos</CardTitle>
@@ -531,7 +528,6 @@ export default function RelatoriosPage() {
                   </p>
                 </CardContent>
               </Card>
-              
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Total FGTS</CardTitle>
@@ -545,7 +541,6 @@ export default function RelatoriosPage() {
                   </p>
                 </CardContent>
               </Card>
-              
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Líquido Total</CardTitle>
@@ -560,7 +555,7 @@ export default function RelatoriosPage() {
                 </CardContent>
               </Card>
             </div>
-
+            {/* Gráfico de composição de custos */}
             {/* Gráfico de composição de custos */}
             <Card>
               <CardHeader>
@@ -590,7 +585,6 @@ export default function RelatoriosPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
           {/* Aba de Departamentos */}
           <TabsContent value="departamentos" className="space-y-4 mt-4">
             <Card>
@@ -656,7 +650,6 @@ export default function RelatoriosPage() {
                 </div>
               </CardContent>
             </Card>
-            
             <Card>
               <CardHeader>
                 <CardTitle>Participação por Departamento</CardTitle>
@@ -691,38 +684,38 @@ export default function RelatoriosPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Gráfico de Barras por Departamento */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Comparativo de Custos por Departamento</CardTitle>
-                <CardDescription>
-                  Breakdown dos custos salariais por departamento
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={departmentData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="department" />
-                      <YAxis tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
-                      <Tooltip 
-                        formatter={(value, name) => [formatCurrency(value as number), name]}
-                      />
-                      <Legend />
-                      <Bar dataKey="totalBase" name="Salário Base" fill="#8884d8" />
-                      <Bar dataKey="totalExtra" name="Horas Extras" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
+            {/* Gráfico de Barras por Departamento */}            {/* Gráfico de Barras por Departamento */}
+              {/* Gráfico de Barras por Departamento */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comparativo de Custos por Departamento</CardTitle>
+                  <CardDescription>
+                    Breakdown dos custos salariais por departamento
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={departmentData}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="department" />
+                        <YAxis tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
+                        <Tooltip 
+                          formatter={(value, name) => [formatCurrency(value as number), name]}
+                        />
+                        <Legend />
+                        <Bar dataKey="totalBase" name="Salário Base" fill="#8884d8" />
+                        <Bar dataKey="totalExtra" name="Horas Extras" fill="#82ca9d" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          {/* Aba de Impostos e Encargos */}{/* Aba de Impostos e Encargos */}
           {/* Aba de Impostos e Encargos */}
           <TabsContent value="impostos" className="space-y-4 mt-4">
             <Card>
@@ -749,6 +742,7 @@ export default function RelatoriosPage() {
                         <TableCell className="text-right">
                           {formatCurrency(summary.totalBaseSalary + summary.totalOvertimePay)}
                         </TableCell>
+                        <TableCell className="text-right">20%</TableCell>
                         <TableCell className="text-right">20%</TableCell>
                         <TableCell className="text-right">
                           {formatCurrency((summary.totalBaseSalary + summary.totalOvertimePay) * 0.2)}
@@ -799,7 +793,6 @@ export default function RelatoriosPage() {
                 </div>
               </CardContent>
             </Card>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
@@ -835,75 +828,71 @@ export default function RelatoriosPage() {
                   </div>
                 </CardContent>
               </Card>
-              
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Descontos do Funcionário</CardTitle>
+                    <CardDescription>
+                      Total de descontos na folha dos funcionários
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={employeeDeductionsData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={true}
+                            label={({ name, percent = 0 }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {employeeDeductionsData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value, name) => [formatCurrency(value as number), name]}
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               <Card>
                 <CardHeader>
-                  <CardTitle>Descontos do Funcionário</CardTitle>
+                  <CardTitle>Guias para Pagamento</CardTitle>
                   <CardDescription>
-                    Total de descontos na folha dos funcionários
+                    Guias geradas para pagamento de impostos e encargos
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={employeeDeductionsData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={true}
-                          label={({ name, percent = 0 }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {employeeDeductionsData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          formatter={(value, name) => [formatCurrency(value as number), name]}
-                        />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center">
+                      <FileText className="h-8 w-8 mb-2" />
+                      <span>DARF - IRRF</span>
+                      <span className="text-xs text-muted-foreground mt-1">Vencimento: 20/{parseInt(selectedMonth) + 1}/2025</span>
+                    </Button>
+                    <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center">
+                      <FileText className="h-8 w-8 mb-2" />
+                      <span>GPS - INSS</span>
+                      <span className="text-xs text-muted-foreground mt-1">Vencimento: 20/{parseInt(selectedMonth) + 1}/2025</span>
+                    </Button>
+                    <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center">
+                      <FileText className="h-8 w-8 mb-2" />
+                      <span>GFIP - FGTS</span>
+                      <span className="text-xs text-muted-foreground mt-1">Vencimento: 07/{parseInt(selectedMonth) + 1}/2025</span>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Guias para Pagamento</CardTitle>
-                <CardDescription>
-                  Guias geradas para pagamento de impostos e encargos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center">
-                    <FileText className="h-8 w-8 mb-2" />
-                    <span>DARF - IRRF</span>
-                    <span className="text-xs text-muted-foreground mt-1">Vencimento: 20/{parseInt(selectedMonth) + 1}/2025</span>
-                  </Button>
-                  
-                  <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center">
-                    <FileText className="h-8 w-8 mb-2" />
-                    <span>GPS - INSS</span>
-                    <span className="text-xs text-muted-foreground mt-1">Vencimento: 20/{parseInt(selectedMonth) + 1}/2025</span>
-                  </Button>
-                  
-                  <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center">
-                    <FileText className="h-8 w-8 mb-2" />
-                    <span>GFIP - FGTS</span>
-                    <span className="text-xs text-muted-foreground mt-1">Vencimento: 07/{parseInt(selectedMonth) + 1}/2025</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-    </div>
-  );
-}
+    )
+  }

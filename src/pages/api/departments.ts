@@ -1,4 +1,4 @@
-// Em src/pages/api/departments.ts
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { connectToDatabase } from '@/api/mongodb';
 import Worker from '@/models/Worker';
@@ -7,16 +7,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await connectToDatabase();
     
-    // Agrupa e conta funcionários por departamento
+    // Agrupa e conta funcionários por cargo (role) ao invés de departamento
     const departments = await Worker.aggregate([
       { $match: { status: "active" } },
       { 
         $group: { 
           _id: { 
             $cond: { 
-              if: { $eq: ["$department", null] }, 
+              if: { $eq: ["$role", null] }, 
               then: "Sem Departamento", 
-              else: "$department" 
+              else: "$role" 
             } 
           }, 
           count: { $sum: 1 } 

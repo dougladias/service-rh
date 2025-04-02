@@ -9,11 +9,20 @@ import { useSession } from 'next-auth/react'
 import {
   LayoutDashboard,
   Users,
-  FileText,
-  Settings,
+  FileText,   
   Clock,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  FileUser,  
+  FilePlus,
+  FileMinus,
+  Landmark,
+  Banknote,
+  Gift,
+  ReceiptText,
+  Cog,
+  CircleUser,
+  BriefcaseBusiness
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -53,19 +62,19 @@ const menuItems: MenuItem[] = [
     allowedRoles: [UserRole.CEO, UserRole.ADMIN],
   },
   {
-    icon: FileText,
+    icon: FileUser,
     label: 'Documentos',
     href: '/dashboard/documentos',
     allowedRoles: [UserRole.CEO, UserRole.ADMIN],
     subItems: [
       {
-        icon: FileText,
+        icon: FilePlus,
         label: 'File Documentos',
         href: '/dashboard/documentos',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
       {
-        icon: FileText,
+        icon: FileMinus,
         label: 'Modelos',
         href: '/dashboard/documentos/modelos',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
@@ -73,35 +82,29 @@ const menuItems: MenuItem[] = [
     ]
   },
   {
-    icon: FileText,
+    icon: Landmark,
     label: 'Folha Salarial',
     href: '/dashboard/folha-pagamento',
     allowedRoles: [UserRole.CEO, UserRole.ADMIN],
     subItems: [
       {
-        icon: FileText,
+        icon: Banknote,
         label: 'Pagamentos',
         href: '/dashboard/folha-pagamento',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
       {
-        icon: FileText,
+        icon: Gift,
         label: 'Benefícios',
         href: '/dashboard/folha-pagamento/beneficios',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
       {
-        icon: FileText,
+        icon: ReceiptText,
         label: 'Holerites',
         href: '/dashboard/folha-pagamento/holerites',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
-      },
-      {
-        icon: FileText,
-        label: 'Calculo',
-        href: '/dashboard/folha-pagamento/calculo',
-        allowedRoles: [UserRole.CEO, UserRole.ADMIN]
-      },
+      },     
       {
         icon: FileText,
         label: 'Relatorios',
@@ -123,7 +126,7 @@ const menuItems: MenuItem[] = [
     allowedRoles: [UserRole.CEO, UserRole.ADMIN]
   },
   {
-    icon: Clock,
+    icon: Cog,
     label: 'Controle',
     href: '/dashboard/controle-ponto',
     allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE],
@@ -135,25 +138,19 @@ const menuItems: MenuItem[] = [
         allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE]
       },
       {
-        icon: Users,
+        icon: CircleUser,
         label: 'Visitantes',
         href: '/dashboard/visitantes',
         allowedRoles: [UserRole.CEO, UserRole.ASSISTENTE]
       },
       {
-        icon: Users,
+        icon: BriefcaseBusiness,
         label: 'Prestadores de Serviço',
         href: '/dashboard/prestadores',
         allowedRoles: [UserRole.CEO, UserRole.ASSISTENTE]
       }
     ]
-  },
-  {
-    icon: Settings,
-    label: 'Configurações',
-    href: '/dashboard/configuracoes',
-    allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE]
-  }
+  }  
 ]
 
 export default function Sidebar() {
