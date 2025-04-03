@@ -13,16 +13,17 @@ import {
   Clock,
   ChevronDown,
   ChevronRight,
-  FileUser,  
-  FilePlus,
-  FileMinus,
+  FileUser,     
   Landmark,
   Banknote,
   Gift,
   ReceiptText,
   Cog,
   CircleUser,
-  BriefcaseBusiness
+  BriefcaseBusiness,  
+  Codesandbox,
+  File,
+  Paperclip
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -68,13 +69,13 @@ const menuItems: MenuItem[] = [
     allowedRoles: [UserRole.CEO, UserRole.ADMIN],
     subItems: [
       {
-        icon: FilePlus,
+        icon: File,
         label: 'File Documentos',
         href: '/dashboard/documentos',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
       {
-        icon: FileMinus,
+        icon: Paperclip,
         label: 'Modelos',
         href: '/dashboard/documentos/modelos',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
@@ -133,7 +134,7 @@ const menuItems: MenuItem[] = [
     subItems: [
       {
         icon: Clock,
-        label: 'Controle de Ponto',
+        label: 'Ponto',
         href: '/dashboard/controle-ponto',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE]
       },
@@ -147,6 +148,12 @@ const menuItems: MenuItem[] = [
         icon: BriefcaseBusiness,
         label: 'Prestadores de Serviço',
         href: '/dashboard/prestadores',
+        allowedRoles: [UserRole.CEO, UserRole.ASSISTENTE]
+      },
+      {
+        icon: Codesandbox,
+        label: 'Materiais',
+        href: '/dashboard/controle/materiais',
         allowedRoles: [UserRole.CEO, UserRole.ASSISTENTE]
       }
     ]
