@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import PDFDocument from 'pdfkit';
@@ -8,8 +6,8 @@ export interface PdfExportOptions {
   title: string;
   subtitle?: string;
   filename: string;
-  data: any[];
-  columns: { key: string; header: string; format?: (value: any) => string }[];
+  data: Record<string, unknown>[];
+  columns: { key: string; header: string; format?: (value: string | number | Date | boolean | null | undefined) => string }[];
   footerText?: string;
 }
 
@@ -168,8 +166,16 @@ export async function exportToPdf(options: PdfExportOptions): Promise<Buffer> {
         
         for (let i = 0; i < columns.length; i++) {
           const value = item[columns[i].key];
-          const formattedValue = columns[i].format 
-            ? columns[i].format(value) 
+          const formatFn = columns[i].format;
+          const formattedValue = formatFn && (
+            typeof value === 'string' || 
+            typeof value === 'number' || 
+            typeof value === 'boolean' || 
+            value instanceof Date || 
+            value === null || 
+            value === undefined
+          ) 
+            ? formatFn(value) 
             : (value === null || value === undefined 
                 ? '-' 
                 : value instanceof Date 

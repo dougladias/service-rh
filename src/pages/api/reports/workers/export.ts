@@ -41,12 +41,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { 
           key: 'admissao', 
           header: 'Data Admissão',
-          format: (value: Date) => format(new Date(value), 'dd/MM/yyyy')
+          format: (value: string | number | boolean | Date | null | undefined) => {
+            if (value instanceof Date || typeof value === 'string' || typeof value === 'number') {
+              return format(new Date(value), 'dd/MM/yyyy');
+            }
+            return '';
+          }
         },
         { 
           key: 'salario', 
           header: 'Salário', 
-          format: (value: string) => formatCurrency(Number(value))
+          format: (value: string | number | boolean | Date | null | undefined) => {
+            if (typeof value === 'string' || typeof value === 'number') {
+              return formatCurrency(Number(value));
+            }
+            return '';
+          }
         },
         { 
           key: 'contract', 
@@ -55,7 +65,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { 
           key: 'status', 
           header: 'Status',
-          format: (value: string) => value === 'active' ? 'Ativo' : 'Inativo'
+          format: (value: string | number | boolean | Date | null | undefined) => {
+            if (typeof value === 'string') {
+              return value === 'active' ? 'Ativo' : 'Inativo';
+            }
+            return '';
+          }
         }
       ];
 

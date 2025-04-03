@@ -106,22 +106,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { 
           key: 'visitDate', 
           header: 'Data da Visita',
-          format: (value: Date) => format(value, 'dd/MM/yyyy')
+          format: (value: string | number | boolean | Date | null | undefined) => 
+            value instanceof Date ? format(value, 'dd/MM/yyyy') : '-'
         },
         { 
           key: 'entryTime', 
           header: 'Entrada',
-          format: (value: Date) => format(new Date(value), 'HH:mm')
+          format: (value: string | number | boolean | Date | null | undefined) => 
+            value ? format(new Date(value as Date | string | number), 'HH:mm') : '-'
         },
         { 
           key: 'leaveTime', 
           header: 'Saída',
-          format: (value: Date | null) => value ? format(new Date(value), 'HH:mm') : '-'
+          format: (value: string | number | boolean | Date | null | undefined) => 
+            value ? format(new Date(value as Date | string | number), 'HH:mm') : '-'
         },
         { 
           key: 'duration', 
           header: 'Duração (min)',
-          format: (value: number | null) => value ? value.toString() : '-'
+          format: (value: string | number | boolean | Date | null | undefined) => 
+            typeof value === 'number' ? value.toString() : '-'
         }
       ];
       

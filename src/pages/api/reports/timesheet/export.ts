@@ -120,22 +120,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { 
           key: 'date', 
           header: 'Data',
-          format: (value: Date | null) => value ? format(value, 'dd/MM/yyyy') : '-'
+          format: (value: string | number | boolean | Date | null | undefined) => 
+            value instanceof Date ? format(value, 'dd/MM/yyyy') : '-'
         },
         { 
           key: 'entryTime', 
           header: 'Entrada',
-          format: (value: Date | null) => value ? format(new Date(value), 'HH:mm') : '-'
+          format: (value: string | number | boolean | Date | null | undefined) => {
+            if (!value) return '-';
+            try { return format(new Date(value as string | number | Date), 'HH:mm'); } catch { return '-'; }
+          }
         },
         { 
           key: 'leaveTime', 
           header: 'Saída',
-          format: (value: Date | null) => value ? format(new Date(value), 'HH:mm') : '-'
+          format: (value: string | number | boolean | Date | null | undefined) => {
+            if (!value) return '-';
+            try { return format(new Date(value as string | number | Date), 'HH:mm'); } catch { return '-'; }
+          }
         },
         { 
           key: 'totalHours', 
           header: 'Total Horas',
-          format: (value: number | null) => value ? value.toString() : '-'
+          format: (value: string | number | boolean | Date | null | undefined) => 
+            typeof value === 'number' ? value.toString() : '-'
         },
         { 
           key: 'status', 
