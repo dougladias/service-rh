@@ -263,7 +263,7 @@ export default function Sidebar() {
           {isMounted && (
             <Lottie
               animationData={LogoGloboo}
-              style={{ width: 120, height: 120 }}
+              style={{ width: 160, height: 160}}
               loop={true}
               autoplay={true}
             />
