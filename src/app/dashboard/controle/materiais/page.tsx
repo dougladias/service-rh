@@ -368,24 +368,24 @@ export default function MaterialsPage() {
     }, [filteredMateriais, currentPage, totalPages]);
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">Gestão de Materiais</h1>
+        <div className="p-6 max-w-6xl mx-auto bg-white dark:bg-gray-900 dark:text-white rounded-2xl">
+            <h1 className="text-3xl font-bold mb-6 text-gray-800 dark:text-white">Gestão de Materiais</h1>
 
             {/* Estatísticas */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <h3 className="text-lg font-medium text-blue-900">Total de Itens</h3>
-                    <p className="text-2xl font-bold text-blue-700">{totalItems}</p>
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h3 className="text-lg font-medium text-blue-900 dark:text-blue-200">Total de Itens</h3>
+                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{totalItems}</p>
                 </div>
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <h3 className="text-lg font-medium text-green-900">Valor Total</h3>
-                    <p className="text-2xl font-bold text-green-700">
+                <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                    <h3 className="text-lg font-medium text-green-900 dark:text-green-200">Valor Total</h3>
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-300">
                         R$ {valorTotalInventario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </p>
                 </div>
-                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                    <h3 className="text-lg font-medium text-amber-900">Categorias</h3>
-                    <p className="text-2xl font-bold text-amber-700">{categorias.length - 1}</p>
+                <div className="bg-amber-50 dark:bg-amber-900/30 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <h3 className="text-lg font-medium text-amber-900 dark:text-amber-200">Categorias</h3>
+                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{categorias.length - 1}</p>
                 </div>
             </div>
 
@@ -396,16 +396,16 @@ export default function MaterialsPage() {
                         <input
                             type="text"
                             placeholder="Buscar material..."
-                            className="pl-10 pr-4 py-2 border rounded-md w-full"
+                            className="pl-10 pr-4 py-2 border rounded-md w-full dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                         <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
                     </div>
                     <div className="flex items-center">
-                        <span className="mr-2 text-gray-500">📋</span>
+                        <span className="mr-2 text-gray-500 dark:text-gray-400">📋</span>
                         <select
-                            className="border rounded-md p-2 w-full"
+                            className="border rounded-md p-2 w-full dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                             value={selectedCategory}
                             onChange={(e) => setSelectedCategory(e.target.value)}
                         >
@@ -489,8 +489,8 @@ export default function MaterialsPage() {
 
             {/* Formulário de Adição/Edição */}
             {showAddForm && (
-                <div className="bg-gray-50 p-4 rounded-lg mb-6 border">
-                    <h2 className="text-xl font-semibold mb-4">
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-6 border dark:border-gray-700">
+                    <h2 className="text-xl font-semibold mb-4 dark:text-white">
                         {editingMaterial ? "Editar Material" : "Adicionar Novo Material"}
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
@@ -580,7 +580,7 @@ export default function MaterialsPage() {
                     </div>
                     <div className="flex justify-end gap-2">
                         <button
-                            className="px-4 py-2 border rounded-md hover:bg-gray-100"
+                            className="px-4 py-2 border rounded-md hover:bg-gray-100 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
                             onClick={() => {
                                 setShowAddForm(false);
                                 setEditingMaterial(null);
@@ -601,7 +601,7 @@ export default function MaterialsPage() {
                             Cancelar
                         </button>
                         <button
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900"
                             onClick={editingMaterial ? handleUpdateMaterial : handleAddMaterial}
                             type="button"
                         >
@@ -617,9 +617,9 @@ export default function MaterialsPage() {
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
                 </div>
             ) : (
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-900">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Categoria
@@ -641,7 +641,7 @@ export default function MaterialsPage() {
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                             {paginatedMateriais.length === 0 ? (
                                 <tr>
                                     <td
@@ -653,7 +653,7 @@ export default function MaterialsPage() {
                                 </tr>
                             ) : (
                                 paginatedMateriais.map((material) => (
-                                    <tr key={material.id} className="hover:bg-gray-50">
+                                    <tr key={material.id}>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="font-medium">{material.categoria}</span>
                                         </td>
