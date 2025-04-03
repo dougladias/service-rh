@@ -561,20 +561,20 @@ export default function VisitorsPage() {
           ) : (
             visitors.map((visitor, index) => (
               <TableRow key={visitor.id || `visitor-${index}`}>
-                  <TableCell>
-                    {visitor.photo ? (
-                      <Image 
-                        src={visitor.photo} 
-                        alt={`Foto de ${visitor.name}`} 
-                        width={40}
-                        height={40}
-                        className="rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <Camera size={16} className="text-gray-500" />
-                      </div>
-                    )}
+                <TableCell>
+                  {visitor.photo ? (
+                    <Image 
+                      src={visitor.photo} 
+                      alt={`Foto de ${visitor.name}`} 
+                      width={40}
+                      height={40}
+                      className="rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                      <Camera size={16} className="text-gray-500" />
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="font-medium">{visitor.name}</TableCell>
                 <TableCell>{visitor.cpf}</TableCell>
