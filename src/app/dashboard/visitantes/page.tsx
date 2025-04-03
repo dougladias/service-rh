@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import axios from "axios";
 import {
   Table,
@@ -26,9 +27,9 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Check, Loader2, PencilIcon } from "lucide-react";
+import { Trash2, Check, Loader2, PencilIcon, Camera } from "lucide-react";
 import { ButtonGlitchBrightness } from "@/components/ui/ButtonGlitch";
-// Removed unused import: import { iVisitor } from '@/models/Visitors'
+import WebcamCapture from "@/components/WebcamCapture/WebcamCapture"; // Componente de captura de webcam
 
 // Just extend the MongoDB model for UI purposes
 interface UiVisitor {
@@ -39,6 +40,7 @@ interface UiVisitor {
   phone: string;
   email: string;
   address: string;
+  photo?: string; // Campo para a foto
   entryTime?: string;
   exitTime?: string;
   logs?: { entryTime: string; leaveTime?: string }[];
@@ -51,6 +53,7 @@ type VisitorInput = {
   phone: string;
   email: string;
   address: string;
+  photo?: string; // Campo para a foto
 };
 
 export default function VisitorsPage() {
@@ -62,6 +65,7 @@ export default function VisitorsPage() {
     phone: "",
     email: "",
     address: "",
+    photo: undefined,
   });
   const [editingVisitor, setEditingVisitor] = useState<UiVisitor | null>(null);
   const [filter, setFilter] = useState({ name: "", cpf: "", address: "" });
@@ -73,6 +77,7 @@ export default function VisitorsPage() {
     text: "",
     isError: false,
   });
+  const [photoData, setPhotoData] = useState<string | null>(null);
 
   // Modifique a função convertVisitorData para tratar corretamente os IDs:
   interface VisitorData {
@@ -84,6 +89,7 @@ export default function VisitorsPage() {
     phone?: string;
     email?: string;
     address?: string;
+    photo?: string;
     logs?: { entryTime: string; leaveTime?: string }[];
   }
 
@@ -130,6 +136,7 @@ export default function VisitorsPage() {
       phone: visitor.phone || "",
       email: visitor.email || "",
       address: visitor.address || "",
+      photo: visitor.photo || "",
       entryTime,
       exitTime,
       logs: visitor.logs || [],
@@ -175,10 +182,14 @@ export default function VisitorsPage() {
 
     setIsLoading(true);
     try {
-      await axios.post("/api/visitors", {
+      // Adicionar a foto ao objeto de novo visitante
+      const visitorData = {
         ...newVisitor,
+        photo: photoData,
         logs: [{ entryTime: new Date() }],
-      });
+      };
+
+      await axios.post("/api/visitors", visitorData);
 
       // Reset form and close dialog
       setNewVisitor({
@@ -188,7 +199,9 @@ export default function VisitorsPage() {
         phone: "",
         email: "",
         address: "",
+        photo: undefined,
       });
+      setPhotoData(null);
       setIsAddDialogOpen(false);
 
       // Refresh visitors list
@@ -211,20 +224,20 @@ export default function VisitorsPage() {
 
     setIsLoading(true);
     try {
+      // Incluir a foto na atualização se foi alterada
+      const updateData = {
+        ...editingVisitor,
+        photo: photoData !== undefined ? photoData : editingVisitor.photo,
+      };
+
       await axios.put("/api/visitors", {
         id: editingVisitor.id,
-        update: {
-          name: editingVisitor.name,
-          rg: editingVisitor.rg,
-          cpf: editingVisitor.cpf,
-          phone: editingVisitor.phone,
-          email: editingVisitor.email,
-          address: editingVisitor.address,
-        },
+        update: updateData,
       });
 
       setIsEditDialogOpen(false);
       setEditingVisitor(null);
+      setPhotoData(null);
       await fetchVisitors();
       setStatusMessage({
         text: "Visitante atualizado com sucesso",
@@ -329,7 +342,13 @@ export default function VisitorsPage() {
   // Set up editing visitor
   const startEditing = (visitor: UiVisitor) => {
     setEditingVisitor(visitor);
+    setPhotoData(visitor.photo || null);
     setIsEditDialogOpen(true);
+  };
+
+  // Função para lidar com captura de foto
+  const handleCapturePhoto = (data: string | null) => {
+    setPhotoData(data);
   };
 
   // Load visitors on page load
@@ -369,12 +388,18 @@ export default function VisitorsPage() {
               className="bg-black hover:bg-gray-600 dark:bg-blue-500/80 transition-all ease-in-out"
             />
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Adicionar Novo Visitante</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4 flex flex-col items-center justify-center">
-              <div className="space-y-2">
+              {/* Componente de captura de foto */}
+              <div className="w-full">
+                <label className="block text-sm font-medium mb-2">Foto do Visitante</label>
+                <WebcamCapture onCapture={handleCapturePhoto} photoData={photoData} />
+              </div>
+              
+              <div className="space-y-2 w-full">
                 <label htmlFor="name">Nome Completo*</label>
                 <Input
                   id="name"
@@ -384,7 +409,7 @@ export default function VisitorsPage() {
                   }
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
                 <label htmlFor="rg">RG*</label>
                 <Input
                   id="rg"
@@ -394,7 +419,7 @@ export default function VisitorsPage() {
                   }
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
                 <label htmlFor="cpf">CPF*</label>
                 <Input
                   id="cpf"
@@ -404,7 +429,7 @@ export default function VisitorsPage() {
                   }
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
                 <label htmlFor="phone">Telefone*</label>
                 <Input
                   id="phone"
@@ -414,7 +439,7 @@ export default function VisitorsPage() {
                   }
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
                 <label htmlFor="email">Email*</label>
                 <Input
                   id="email"
@@ -424,7 +449,7 @@ export default function VisitorsPage() {
                   }
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
                 <label htmlFor="address">Setor*</label>
                 <Select
                   value={newVisitor.address}
@@ -514,6 +539,7 @@ export default function VisitorsPage() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Foto</TableHead>
             <TableHead>Nome</TableHead>
             <TableHead>CPF</TableHead>
             <TableHead>RG</TableHead>
@@ -528,13 +554,28 @@ export default function VisitorsPage() {
         <TableBody>
           {visitors.length === 0 && !isLoading ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                 Nenhum visitante encontrado
               </TableCell>
             </TableRow>
           ) : (
             visitors.map((visitor, index) => (
               <TableRow key={visitor.id || `visitor-${index}`}>
+                  <TableCell>
+                    {visitor.photo ? (
+                      <Image 
+                        src={visitor.photo} 
+                        alt={`Foto de ${visitor.name}`} 
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                        <Camera size={16} className="text-gray-500" />
+                      </div>
+                    )}
+                </TableCell>
                 <TableCell className="font-medium">{visitor.name}</TableCell>
                 <TableCell>{visitor.cpf}</TableCell>
                 <TableCell>{visitor.rg}</TableCell>
@@ -584,12 +625,18 @@ export default function VisitorsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Visitante</DialogTitle>
           </DialogHeader>
           {editingVisitor && (
             <div className="space-y-4 py-4">
+              {/* Componente de captura de foto na edição */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Foto do Visitante</label>
+                <WebcamCapture onCapture={handleCapturePhoto} photoData={photoData} />
+              </div>
+              
               <div className="space-y-2">
                 <label htmlFor="edit-name">Nome Completo*</label>
                 <Input
