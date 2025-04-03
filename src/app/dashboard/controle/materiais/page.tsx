@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArchiveRestore, Edit, FileDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import axios from "axios";
 
 // Interface para o tipo Material
 interface Material {
@@ -60,23 +61,22 @@ export default function MaterialsPage() {
     const [selectedMonth, setSelectedMonth] = useState(monthParam ? parseInt(monthParam) : currentDate.getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(yearParam ? parseInt(yearParam) : currentDate.getFullYear());
 
-    // Simulando carregamento de dados do banco
+    // Carregando materiais do banco de dados
     useEffect(() => {
         const fetchMaterials = async () => {
             setLoading(true);
 
-            // Simulando acesso ao banco de dados
             try {
-                // Em uma implementação real, aqui você faria a chamada à API
-                // const response = await fetch('/api/materiais');
-                // const data = await response.json();
+                // Busca filtrada usando a API
+                const response = await axios.get<Material[]>('/api/materiais/filtro', {
+                    params: {
+                        month: selectedMonth,
+                        year: selectedYear,
+                        category: selectedCategory !== "Todos" ? selectedCategory : undefined
+                    }
+                });
 
-                // Simulação de atraso de rede
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-
-                // Para fins de demonstração, carregar do localStorage
-                const savedMaterials = localStorage.getItem('materiais');
-                setMateriais(savedMaterials ? JSON.parse(savedMaterials) : []);
+                setMateriais(response.data);
             } catch (error) {
                 console.error("Erro ao carregar materiais:", error);
                 setError("Falha ao carregar os materiais. Tente novamente mais tarde.");
@@ -86,14 +86,7 @@ export default function MaterialsPage() {
         };
 
         fetchMaterials();
-    }, []);
-
-    // Salvar no localStorage sempre que o estado de materiais mudar
-    useEffect(() => {
-        if (materiais.length > 0) {
-            localStorage.setItem('materiais', JSON.stringify(materiais));
-        }
-    }, [materiais]);
+    }, [selectedMonth, selectedYear, selectedCategory]);
 
     // Atualizar URL quando mudar página ou filtros
     useEffect(() => {
@@ -119,7 +112,7 @@ export default function MaterialsPage() {
         }
     }, [editingMaterial]);
 
-    // Funções CRUD
+    // Função para adicionar material via API
     const handleAddMaterial = async () => {
         if (!newMaterial.nome || !newMaterial.unidade) {
             setError("Preencha todos os campos obrigatórios");
@@ -129,27 +122,20 @@ export default function MaterialsPage() {
         setLoading(true);
 
         try {
-            // Gerar ID único
-            const newId = Date.now().toString();
+            // Preparar dados para enviar à API
             const materialToAdd = {
                 ...newMaterial,
-                id: newId,
-                dataCriacao: new Date().toISOString(),
                 quantidade: parseFloat(quantidadeInput) || 0,
                 preco: parseFloat(precoInput) || 0
             };
 
-            // Em uma implementação real, você enviaria para a API
-            // const response = await fetch('/api/materiais', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify(materialToAdd)
-            // });
+            // Chamada à API para adicionar material
+            const response = await axios.post<Material>('/api/materiais', materialToAdd);
 
-            // Simulando atraso de rede
-            await new Promise((resolve) => setTimeout(resolve, 300));
+            // Adicionar o material retornado ao estado
+            setMateriais([...materiais, response.data]);
 
-            setMateriais([...materiais, materialToAdd]);
+            // Limpar o formulário
             setNewMaterial({
                 categoria: "Material de Escritório",
                 nome: "",
@@ -167,14 +153,17 @@ export default function MaterialsPage() {
 
             // Limpar mensagem de sucesso após 3 segundos
             setTimeout(() => setSuccess(null), 3000);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Erro ao adicionar material:", error);
-            setError("Falha ao adicionar o material. Tente novamente.");
+            setError(error instanceof Error
+                ? error.message
+                : (error as { response?: { data?: { error?: string } } })?.response?.data?.error || "Falha ao adicionar o material. Tente novamente.");
         } finally {
             setLoading(false);
         }
     };
 
+    // Função para editar material 
     const handleEditMaterial = (material: Material) => {
         setEditingMaterial(material);
         setNewMaterial(material);
@@ -183,6 +172,7 @@ export default function MaterialsPage() {
         setShowAddForm(true);
     };
 
+    // Função para atualizar material via API
     const handleUpdateMaterial = async () => {
         if (!editingMaterial || !newMaterial.nome || !newMaterial.unidade) {
             setError("Preencha todos os campos obrigatórios");
@@ -192,24 +182,19 @@ export default function MaterialsPage() {
         setLoading(true);
 
         try {
-            // Em uma implementação real, você enviaria para a API
-            // const response = await fetch(`/api/materiais/${editingMaterial.id}`, {
-            //   method: 'PUT',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify(newMaterial)
-            // });
-
-            // Simulando atraso de rede
-            await new Promise((resolve) => setTimeout(resolve, 300));
-
+            // Preparar dados para enviar à API
             const updatedMaterial = {
                 ...newMaterial,
                 quantidade: parseFloat(quantidadeInput) || 0,
                 preco: parseFloat(precoInput) || 0
             };
 
+            // Chamada à API para atualizar material
+            await axios.put<Material>(`/api/materiais/${editingMaterial.id}`, updatedMaterial);
+
+            // Atualizar a lista local de materiais
             const updatedMateriais = materiais.map((mat) =>
-                mat.id === editingMaterial.id ? updatedMaterial : mat
+                mat.id === editingMaterial.id ? { ...updatedMaterial, id: editingMaterial.id } : mat
             );
 
             setMateriais(updatedMateriais);
@@ -228,16 +213,17 @@ export default function MaterialsPage() {
             setShowAddForm(false);
             setSuccess("Material atualizado com sucesso!");
 
-            // Limpar mensagem de sucesso após 3 segundos
-            setTimeout(() => setSuccess(null), 3000);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Erro ao atualizar material:", error);
-            setError("Falha ao atualizar o material. Tente novamente.");
+            setError(error instanceof Error
+                ? error.message
+                : (error as { response?: { data?: { error?: string } } })?.response?.data?.error || "Falha ao atualizar o material. Tente novamente.");
         } finally {
             setLoading(false);
         }
     };
 
+    // Função para excluir material via API
     const handleDeleteMaterial = async (id: string) => {
         if (!confirm("Tem certeza que deseja excluir este material?")) {
             return;
@@ -246,23 +232,19 @@ export default function MaterialsPage() {
         setLoading(true);
 
         try {
-            // Em uma implementação real, você enviaria para a API
-            // await fetch(`/api/materiais/${id}`, {
-            //   method: 'DELETE'
-            // });
+            // Chamada à API para excluir material
+            await axios.delete(`/api/materiais/${id}`);
 
-            // Simulando atraso de rede
-            await new Promise((resolve) => setTimeout(resolve, 300));
-
+            // Atualizar a lista local de materiais
             const filteredMateriais = materiais.filter((mat) => mat.id !== id);
             setMateriais(filteredMateriais);
             setSuccess("Material excluído com sucesso!");
-
-            // Limpar mensagem de sucesso após 3 segundos
             setTimeout(() => setSuccess(null), 3000);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Erro ao excluir material:", error);
-            setError("Falha ao excluir o material. Tente novamente.");
+            setError(error instanceof Error
+                ? error.message
+                : (error as { response?: { data?: { error?: string } } })?.response?.data?.error || "Falha ao excluir o material. Tente novamente.");
         } finally {
             setLoading(false);
         }
@@ -332,20 +314,15 @@ export default function MaterialsPage() {
         document.body.removeChild(link);
     };
 
-    // Filtrar materiais com filtros adicionais de data
+    // Filtrar materiais com base no termo de busca
     const filteredMateriais = materiais.filter((material) => {
-        const dataCriacao = new Date(material.dataCriacao);
         const matchesSearch = material.nome
             .toLowerCase()
             .includes(searchTerm.toLowerCase());
         const matchesCategory =
             selectedCategory === "Todos" || material.categoria === selectedCategory;
-        const matchesMonth =
-            dataCriacao.getMonth() + 1 === selectedMonth;
-        const matchesYear =
-            dataCriacao.getFullYear() === selectedYear;
 
-        return matchesSearch && matchesCategory && matchesMonth && matchesYear;
+        return matchesSearch && matchesCategory;
     });
 
     // Calcular totais
@@ -453,12 +430,12 @@ export default function MaterialsPage() {
                         onClick={exportToCSV}>
                         <FileDown className="mr-2 h-4 w-4" />
                         Exportar
-                    </Button>         
+                    </Button>
                     <Button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center"
                         onClick={() => setShowAddForm(!showAddForm)}>
                         <ArchiveRestore className="mr-2 h-4 w-4" />
                         {editingMaterial ? "Editar" : "Adicionar"}
-                    </Button>                   
+                    </Button>
                 </div>
             </div>
 
