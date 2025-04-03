@@ -1,45 +1,32 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArchiveRestore, Edit, FileDown, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 // Interface para o tipo Material
 interface Material {
-  id?: string;
-  categoria: string;
-  nome: string;
-  quantidade: number;
-  unidade: string;
-  preco: number;
+    id?: string;
+    categoria: string;
+    nome: string;
+    quantidade: number;
+    unidade: string;
+    preco: number;
+    dataCriacao: string;
+    fornecedor?: string;
 }
 
-// Lista de materiais simulada
-const mockMateriais: Material[] = [
-  // Materiais de Limpeza
-  { id: "1", categoria: "Material de Limpeza", nome: "Detergente Neutro", quantidade: 24, unidade: "Litro", preco: 120.00 },
-  { id: "2", categoria: "Material de Limpeza", nome: "Papel Higiênico", quantidade: 50, unidade: "Fardo", preco: 450.00 },
-  { id: "3", categoria: "Material de Limpeza", nome: "Desinfetante", quantidade: 15, unidade: "Litro", preco: 85.50 },
-  { id: "4", categoria: "Material de Limpeza", nome: "Álcool 70%", quantidade: 30, unidade: "Litro", preco: 180.00 },
-  { id: "5", categoria: "Material de Limpeza", nome: "Pano de Chão", quantidade: 20, unidade: "Unidade", preco: 100.00 },
-  { id: "6", categoria: "Material de Limpeza", nome: "Sabão em Pó", quantidade: 10, unidade: "Kg", preco: 120.00 },
-  { id: "7", categoria: "Material de Limpeza", nome: "Água Sanitária", quantidade: 20, unidade: "Litro", preco: 90.00 },
-  { id: "8", categoria: "Material de Limpeza", nome: "Luvas Descartáveis", quantidade: 5, unidade: "Caixa", preco: 125.00 },
-  { id: "9", categoria: "Material de Limpeza", nome: "Rodo", quantidade: 8, unidade: "Unidade", preco: 96.00 },
-  { id: "10", categoria: "Material de Limpeza", nome: "Vassoura", quantidade: 8, unidade: "Unidade", preco: 88.00 },
-  
-  // Materiais de Escritório
-  { id: "11", categoria: "Material de Escritório", nome: "Papel A4", quantidade: 30, unidade: "Resma", preco: 750.00 },
-  { id: "12", categoria: "Material de Escritório", nome: "Caneta Esferográfica", quantidade: 100, unidade: "Unidade", preco: 150.00 },
-  { id: "13", categoria: "Material de Escritório", nome: "Grampeador", quantidade: 10, unidade: "Unidade", preco: 200.00 },
-  { id: "14", categoria: "Material de Escritório", nome: "Clips", quantidade: 20, unidade: "Caixa", preco: 60.00 },
-  { id: "15", categoria: "Material de Escritório", nome: "Post-it", quantidade: 15, unidade: "Pacote", preco: 90.00 },
-  { id: "16", categoria: "Material de Escritório", nome: "Grampo", quantidade: 10, unidade: "Caixa", preco: 50.00 },
-  { id: "17", categoria: "Material de Escritório", nome: "Marca Texto", quantidade: 30, unidade: "Unidade", preco: 90.00 },
-  { id: "18", categoria: "Material de Escritório", nome: "Arquivo Morto", quantidade: 40, unidade: "Unidade", preco: 160.00 },
-  { id: "19", categoria: "Material de Escritório", nome: "Pasta Catálogo", quantidade: 15, unidade: "Unidade", preco: 225.00 },
-  { id: "20", categoria: "Material de Escritório", nome: "Envelope Pardo", quantidade: 100, unidade: "Unidade", preco: 50.00 },
-];
-  
-  export default function MaterialsPage() {
+export default function MaterialsPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // Recupera parâmetros da URL
+    const pageParam = searchParams?.get("page");
+    const monthParam = searchParams?.get("month");
+    const yearParam = searchParams?.get("year");
+
     // State declarations
     const [materiais, setMateriais] = useState<Material[]>([]);
     const [loading, setLoading] = useState(true);
@@ -47,338 +34,724 @@ const mockMateriais: Material[] = [
     const [selectedCategory, setSelectedCategory] = useState("Todos");
     const [showAddForm, setShowAddForm] = useState(false);
     const [newMaterial, setNewMaterial] = useState<Material>({
-      categoria: "Material de Escritório",
-      nome: "",
-      quantidade: 0,
-      unidade: "",
-      preco: 0,
+        categoria: "Material de Escritório",
+        nome: "",
+        quantidade: 0,
+        unidade: "",
+        preco: 0,
+        dataCriacao: new Date().toISOString(),
+        fornecedor: "",
     });
+
+    // State para inputs como strings para melhor experiência do usuário
+    const [quantidadeInput, setQuantidadeInput] = useState("");
+    const [precoInput, setPrecoInput] = useState("");
+
     const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
     const [error, setError] = useState<string | null>(null);
-    
-    // Simulando carregamento de dados
+    const [success, setSuccess] = useState<string | null>(null);
+
+    // Paginação
+    const [currentPage, setCurrentPage] = useState(pageParam ? parseInt(pageParam) : 1);
+    const itemsPerPage = 10;
+
+    // Filtro de mês e ano
+    const currentDate = useMemo(() => new Date(), []);
+    const [selectedMonth, setSelectedMonth] = useState(monthParam ? parseInt(monthParam) : currentDate.getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(yearParam ? parseInt(yearParam) : currentDate.getFullYear());
+
+    // Simulando carregamento de dados do banco
     useEffect(() => {
-      setTimeout(() => {
-        setMateriais(mockMateriais);
-        setLoading(false);
-      }, 1000);
+        const fetchMaterials = async () => {
+            setLoading(true);
+
+            // Simulando acesso ao banco de dados
+            try {
+                // Em uma implementação real, aqui você faria a chamada à API
+                // const response = await fetch('/api/materiais');
+                // const data = await response.json();
+
+                // Simulação de atraso de rede
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+
+                // Para fins de demonstração, carregar do localStorage
+                const savedMaterials = localStorage.getItem('materiais');
+                setMateriais(savedMaterials ? JSON.parse(savedMaterials) : []);
+            } catch (error) {
+                console.error("Erro ao carregar materiais:", error);
+                setError("Falha ao carregar os materiais. Tente novamente mais tarde.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchMaterials();
     }, []);
-  
-    // Funções simuladas de CRUD
-    const handleAddMaterial = () => {
-      if (!newMaterial.nome || !newMaterial.unidade) {
-        setError("Preencha todos os campos obrigatórios");
-        return;
-      }
-  
-      const newId = (materiais.length + 1).toString();
-      const materialToAdd = { ...newMaterial, id: newId };
-  
-      setMateriais([...materiais, materialToAdd]);
-      setNewMaterial({
-        categoria: "Material de Escritório",
-        nome: "",
-        quantidade: 0,
-        unidade: "",
-        preco: 0,
-      });
-      setShowAddForm(false);
-      setError(null);
+
+    // Salvar no localStorage sempre que o estado de materiais mudar
+    useEffect(() => {
+        if (materiais.length > 0) {
+            localStorage.setItem('materiais', JSON.stringify(materiais));
+        }
+    }, [materiais]);
+
+    // Atualizar URL quando mudar página ou filtros
+    useEffect(() => {
+        const params = new URLSearchParams();
+        params.set("page", currentPage.toString());
+
+        if (selectedMonth !== currentDate.getMonth() + 1 || selectedYear !== currentDate.getFullYear()) {
+            params.set("month", selectedMonth.toString());
+            params.set("year", selectedYear.toString());
+        }
+
+        router.push(`?${params.toString()}`);
+    }, [currentPage, selectedMonth, selectedYear, router, currentDate]);
+
+    // Atualizar inputs quando estiver editando
+    useEffect(() => {
+        if (editingMaterial) {
+            setQuantidadeInput(editingMaterial.quantidade.toString());
+            setPrecoInput(editingMaterial.preco.toString());
+        } else {
+            setQuantidadeInput("");
+            setPrecoInput("");
+        }
+    }, [editingMaterial]);
+
+    // Funções CRUD
+    const handleAddMaterial = async () => {
+        if (!newMaterial.nome || !newMaterial.unidade) {
+            setError("Preencha todos os campos obrigatórios");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            // Gerar ID único
+            const newId = Date.now().toString();
+            const materialToAdd = {
+                ...newMaterial,
+                id: newId,
+                dataCriacao: new Date().toISOString(),
+                quantidade: parseFloat(quantidadeInput) || 0,
+                preco: parseFloat(precoInput) || 0
+            };
+
+            // Em uma implementação real, você enviaria para a API
+            // const response = await fetch('/api/materiais', {
+            //   method: 'POST',
+            //   headers: { 'Content-Type': 'application/json' },
+            //   body: JSON.stringify(materialToAdd)
+            // });
+
+            // Simulando atraso de rede
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            setMateriais([...materiais, materialToAdd]);
+            setNewMaterial({
+                categoria: "Material de Escritório",
+                nome: "",
+                quantidade: 0,
+                unidade: "",
+                preco: 0,
+                dataCriacao: new Date().toISOString(),
+                fornecedor: "",
+            });
+            setQuantidadeInput("");
+            setPrecoInput("");
+            setShowAddForm(false);
+            setError(null);
+            setSuccess("Material adicionado com sucesso!");
+
+            // Limpar mensagem de sucesso após 3 segundos
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (error) {
+            console.error("Erro ao adicionar material:", error);
+            setError("Falha ao adicionar o material. Tente novamente.");
+        } finally {
+            setLoading(false);
+        }
     };
-  
+
     const handleEditMaterial = (material: Material) => {
-      setEditingMaterial(material);
-      setNewMaterial(material);
-      setShowAddForm(true);
+        setEditingMaterial(material);
+        setNewMaterial(material);
+        setQuantidadeInput(material.quantidade.toString());
+        setPrecoInput(material.preco.toString());
+        setShowAddForm(true);
     };
-  
-    const handleUpdateMaterial = () => {
-      if (!editingMaterial) return;
-  
-      const updatedMateriais = materiais.map((mat) =>
-        mat.id === editingMaterial.id ? newMaterial : mat
-      );
-  
-      setMateriais(updatedMateriais);
-      setEditingMaterial(null);
-      setNewMaterial({
-        categoria: "Material de Escritório",
-        nome: "",
-        quantidade: 0,
-        unidade: "",
-        preco: 0,
-      });
-      setShowAddForm(false);
+
+    const handleUpdateMaterial = async () => {
+        if (!editingMaterial || !newMaterial.nome || !newMaterial.unidade) {
+            setError("Preencha todos os campos obrigatórios");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            // Em uma implementação real, você enviaria para a API
+            // const response = await fetch(`/api/materiais/${editingMaterial.id}`, {
+            //   method: 'PUT',
+            //   headers: { 'Content-Type': 'application/json' },
+            //   body: JSON.stringify(newMaterial)
+            // });
+
+            // Simulando atraso de rede
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            const updatedMaterial = {
+                ...newMaterial,
+                quantidade: parseFloat(quantidadeInput) || 0,
+                preco: parseFloat(precoInput) || 0
+            };
+
+            const updatedMateriais = materiais.map((mat) =>
+                mat.id === editingMaterial.id ? updatedMaterial : mat
+            );
+
+            setMateriais(updatedMateriais);
+            setEditingMaterial(null);
+            setNewMaterial({
+                categoria: "Material de Escritório",
+                nome: "",
+                quantidade: 0,
+                unidade: "",
+                preco: 0,
+                dataCriacao: new Date().toISOString(),
+                fornecedor: "",
+            });
+            setQuantidadeInput("");
+            setPrecoInput("");
+            setShowAddForm(false);
+            setSuccess("Material atualizado com sucesso!");
+
+            // Limpar mensagem de sucesso após 3 segundos
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (error) {
+            console.error("Erro ao atualizar material:", error);
+            setError("Falha ao atualizar o material. Tente novamente.");
+        } finally {
+            setLoading(false);
+        }
     };
-  
-    const handleDeleteMaterial = (id: string) => {
-      const filteredMateriais = materiais.filter((mat) => mat.id !== id);
-      setMateriais(filteredMateriais);
+
+    const handleDeleteMaterial = async (id: string) => {
+        if (!confirm("Tem certeza que deseja excluir este material?")) {
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            // Em uma implementação real, você enviaria para a API
+            // await fetch(`/api/materiais/${id}`, {
+            //   method: 'DELETE'
+            // });
+
+            // Simulando atraso de rede
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            const filteredMateriais = materiais.filter((mat) => mat.id !== id);
+            setMateriais(filteredMateriais);
+            setSuccess("Material excluído com sucesso!");
+
+            // Limpar mensagem de sucesso após 3 segundos
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (error) {
+            console.error("Erro ao excluir material:", error);
+            setError("Falha ao excluir o material. Tente novamente.");
+        } finally {
+            setLoading(false);
+        }
     };
-    
+
     // Categorias disponíveis
     const categorias = [
-      "Todos",
-      "Material de Limpeza",
-      "Material de Escritório"
+        "Todos",
+        "Material de Limpeza",
+        "Material de Escritório",
+        "Equipamentos",
+        "Produtos de Cozinha"
     ];
-  
-    // Filtrar materiais
+
+    // Obter meses
+    const meses = [
+        { value: 1, label: "Janeiro" },
+        { value: 2, label: "Fevereiro" },
+        { value: 3, label: "Março" },
+        { value: 4, label: "Abril" },
+        { value: 5, label: "Maio" },
+        { value: 6, label: "Junho" },
+        { value: 7, label: "Julho" },
+        { value: 8, label: "Agosto" },
+        { value: 9, label: "Setembro" },
+        { value: 10, label: "Outubro" },
+        { value: 11, label: "Novembro" },
+        { value: 12, label: "Dezembro" }
+    ];
+
+    // Função para exportar dados
+    const exportToCSV = () => {
+        if (filteredMateriais.length === 0) {
+            setError("Não há dados para exportar");
+            return;
+        }
+
+        // Criar cabeçalho CSV
+        const headers = ["ID", "Categoria", "Nome", "Quantidade", "Unidade", "Preço", "Data de Cadastro", "Fornecedor"];
+
+        // Converter dados para formato CSV
+        const csvData = filteredMateriais.map(material => [
+            material.id,
+            material.categoria,
+            material.nome,
+            material.quantidade,
+            material.unidade,
+            material.preco,
+            new Date(material.dataCriacao).toLocaleDateString(),
+            material.fornecedor || ""
+        ]);
+
+        // Juntar tudo em uma string CSV
+        const csvContent = [
+            headers.join(","),
+            ...csvData.map(row => row.join(","))
+        ].join("\n");
+
+        // Criar blob e link para download
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `materiais_${selectedMonth}_${selectedYear}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Filtrar materiais com filtros adicionais de data
     const filteredMateriais = materiais.filter((material) => {
-      const matchesSearch = material.nome
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "Todos" || material.categoria === selectedCategory;
-  
-      return matchesSearch && matchesCategory;
+        const dataCriacao = new Date(material.dataCriacao);
+        const matchesSearch = material.nome
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
+        const matchesCategory =
+            selectedCategory === "Todos" || material.categoria === selectedCategory;
+        const matchesMonth =
+            dataCriacao.getMonth() + 1 === selectedMonth;
+        const matchesYear =
+            dataCriacao.getFullYear() === selectedYear;
+
+        return matchesSearch && matchesCategory && matchesMonth && matchesYear;
     });
-  
+
     // Calcular totais
     const totalItems = filteredMateriais.length;
     const valorTotalInventario = filteredMateriais.reduce(
-      (sum, material) => sum + material.preco,
-      0
+        (sum, material) => sum + material.preco,
+        0
     );
+
+    // Paginação
+    const totalPages = Math.ceil(filteredMateriais.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedMateriais = filteredMateriais.slice(startIndex, startIndex + itemsPerPage);
+
+    // Verificar se a página atual existe após filtragem
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(1);
+        }
+    }, [filteredMateriais, currentPage, totalPages]);
+
     return (
-      <div className="p-6 max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">Gestão de Materiais</h1>
-  
-        {/* Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <h3 className="text-lg font-medium text-blue-900">Total de Itens</h3>
-          <p className="text-2xl font-bold text-blue-700">{totalItems}</p>
-        </div>
-        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-          <h3 className="text-lg font-medium text-green-900">Valor Total</h3>
-          <p className="text-2xl font-bold text-green-700">
-            R$ {valorTotalInventario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </p>
-        </div>
-        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-          <h3 className="text-lg font-medium text-amber-900">Categorias</h3>
-          <p className="text-2xl font-bold text-amber-700">{categorias.length - 1}</p>
-        </div>
-      </div>
+        <div className="p-6 max-w-6xl mx-auto">
+            <h1 className="text-3xl font-bold mb-6 text-gray-800">Gestão de Materiais</h1>
 
-      {/* Filtros e Pesquisa */}
-      <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Buscar material..."
-              className="pl-10 pr-4 py-2 border rounded-md w-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
-          </div>
-          <div className="flex items-center">
-            <span className="mr-2 text-gray-500">📋</span>
-            <select
-              className="border rounded-md p-2 w-full"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              {categorias.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <button 
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center"
-          onClick={() => setShowAddForm(!showAddForm)}
-        >
-          <span className="mr-2">➕</span>
-          {editingMaterial ? "Editar Material" : "Adicionar Material"}
-        </button>
-      </div>
+            {/* Estatísticas */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h3 className="text-lg font-medium text-blue-900">Total de Itens</h3>
+                    <p className="text-2xl font-bold text-blue-700">{totalItems}</p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h3 className="text-lg font-medium text-green-900">Valor Total</h3>
+                    <p className="text-2xl font-bold text-green-700">
+                        R$ {valorTotalInventario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                </div>
+                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <h3 className="text-lg font-medium text-amber-900">Categorias</h3>
+                    <p className="text-2xl font-bold text-amber-700">{categorias.length - 1}</p>
+                </div>
+            </div>
 
-      {/* Mensagem de erro */}
-      {error && (
-        <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4">
-          {error}
-        </div>
-      )}
+            {/* Filtros, Pesquisa e Controles */}
+            <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Buscar material..."
+                            className="pl-10 pr-4 py-2 border rounded-md w-full"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="mr-2 text-gray-500">📋</span>
+                        <select
+                            className="border rounded-md p-2 w-full"
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                        >
+                            {categorias.map((cat) => (
+                                <option key={cat} value={cat}>
+                                    {cat}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
 
-      {/* Formulário de Adição/Edição */}
-      {showAddForm && (
-        <div className="bg-gray-50 p-4 rounded-lg mb-6 border">
-          <h2 className="text-xl font-semibold mb-4">
-            {editingMaterial ? "Editar Material" : "Adicionar Novo Material"}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Categoria</label>
-              <select
-                className="w-full border rounded-md p-2"
-                value={newMaterial.categoria}
-                onChange={(e) =>
-                  setNewMaterial({ ...newMaterial, categoria: e.target.value })
-                }
-              >
-                <option value="Material de Limpeza">Material de Limpeza</option>
-                <option value="Material de Escritório">Material de Escritório</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Nome</label>
-              <input
-                type="text"
-                className="w-full border rounded-md p-2"
-                value={newMaterial.nome}
-                onChange={(e) =>
-                  setNewMaterial({ ...newMaterial, nome: e.target.value })
-                }
-                placeholder="Nome do material"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Quantidade</label>
-              <input
-                type="number"
-                className="w-full border rounded-md p-2"
-                value={newMaterial.quantidade}
-                onChange={(e) =>
-                  setNewMaterial({
-                    ...newMaterial,
-                    quantidade: parseInt(e.target.value) || 0,
-                  })
-                }
-                placeholder="Quantidade"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Unidade</label>
-              <input
-                type="text"
-                className="w-full border rounded-md p-2"
-                value={newMaterial.unidade}
-                onChange={(e) =>
-                  setNewMaterial({ ...newMaterial, unidade: e.target.value })
-                }
-                placeholder="Unidade (ex: KG, Litro, etc.)"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Preço Total</label>
-              <input
-                type="number"
-                className="w-full border rounded-md p-2"
-                value={newMaterial.preco}
-                onChange={(e) =>
-                  setNewMaterial({
-                    ...newMaterial,
-                    preco: parseFloat(e.target.value) || 0,
-                  })
-                }
-                placeholder="Preço total"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              className="px-4 py-2 border rounded-md hover:bg-gray-100"
-              onClick={() => {
-                setShowAddForm(false);
-                setEditingMaterial(null);
-                setNewMaterial({
-                  categoria: "Material de Escritório",
-                  nome: "",
-                  quantidade: 0,
-                  unidade: "",
-                  preco: 0,
-                });
-              }}
-            >
-              Cancelar
-            </button>
-            <button
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              onClick={editingMaterial ? handleUpdateMaterial : handleAddMaterial}
-            >
-              {editingMaterial ? "Atualizar" : "Adicionar"}
-            </button>
-          </div>
-        </div>
-      )}
+                {/* Filtro de mês e ano */}
+                <div className="flex gap-2">
+                    <div className="flex items-center">
+                        <span className="mr-2 text-gray-500">📅</span>
+                        <select
+                            className="border rounded-md p-2"
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                        >
+                            {meses.map((mes) => (
+                                <option key={mes.value} value={mes.value}>
+                                    {mes.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="mr-2 text-gray-500">📆</span>
+                        <select
+                            className="border rounded-md p-2"
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        >
+                            {[2023, 2024, 2025, 2026].map((year) => (
+                                <option key={year} value={year}>
+                                    {year}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-      {/* Tabela de materiais */}
-      {loading ? (
-        <div className="flex justify-center items-center h-40">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Categoria
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nome
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Quantidade
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Valor Total
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredMateriais.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-8 text-center text-gray-500"
-                  >
-                    Nenhum material encontrado
-                  </td>
-                </tr>
-              ) : (
-                filteredMateriais.map((material) => (
-                  <tr key={material.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="font-medium">{material.categoria}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{material.nome}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {material.quantidade} {material.unidade}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      R$ {material.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <button
-                            className="text-blue-600 hover:text-blue-900 mx-1"
-                            onClick={() => handleEditMaterial(material)}
-                          >
-                            ✏️ Editar
-                          </button>
-                          <button
-                            className="text-red-600 hover:text-red-900 mx-1"
-                            onClick={() => handleDeleteMaterial(material.id!)}
-                          >
-                            🗑️ Excluir
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    <Button className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center justify-center"
+                        onClick={exportToCSV}>
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Exportar
+                    </Button>         
+                    <Button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center"
+                        onClick={() => setShowAddForm(!showAddForm)}>
+                        <ArchiveRestore className="mr-2 h-4 w-4" />
+                        {editingMaterial ? "Editar" : "Adicionar"}
+                    </Button>                   
+                </div>
             </div>
-          )}
+
+            {/* Mensagens */}
+            {error && (
+                <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4">
+                    {error}
+                    <button
+                        className="float-right"
+                        onClick={() => setError(null)}
+                    >
+                        ✖
+                    </button>
+                </div>
+            )}
+
+            {success && (
+                <div className="bg-green-100 text-green-700 p-3 rounded-md mb-4">
+                    {success}
+                    <button
+                        className="float-right"
+                        onClick={() => setSuccess(null)}
+                    >
+                        ✖
+                    </button>
+                </div>
+            )}
+
+            {/* Formulário de Adição/Edição */}
+            {showAddForm && (
+                <div className="bg-gray-50 p-4 rounded-lg mb-6 border">
+                    <h2 className="text-xl font-semibold mb-4">
+                        {editingMaterial ? "Editar Material" : "Adicionar Novo Material"}
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Categoria *</label>
+                            <select
+                                className="w-full border rounded-md p-2"
+                                value={newMaterial.categoria}
+                                onChange={(e) =>
+                                    setNewMaterial({ ...newMaterial, categoria: e.target.value })
+                                }
+                            >
+                                {categorias.slice(1).map((cat) => (
+                                    <option key={cat} value={cat}>
+                                        {cat}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Nome *</label>
+                            <input
+                                type="text"
+                                className="w-full border rounded-md p-2"
+                                value={newMaterial.nome}
+                                onChange={(e) =>
+                                    setNewMaterial({ ...newMaterial, nome: e.target.value })
+                                }
+                                placeholder="Nome do material"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Quantidade *</label>
+                            <input
+                                type="text"
+                                className="w-full border rounded-md p-2"
+                                value={quantidadeInput}
+                                onChange={(e) => {
+                                    // Permitir apenas números e decimais
+                                    const value = e.target.value.replace(/[^0-9.]/g, '');
+                                    setQuantidadeInput(value);
+                                }}
+                                placeholder="Quantidade"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Unidade *</label>
+                            <input
+                                type="text"
+                                className="w-full border rounded-md p-2"
+                                value={newMaterial.unidade}
+                                onChange={(e) =>
+                                    setNewMaterial({ ...newMaterial, unidade: e.target.value })
+                                }
+                                placeholder="Unidade (ex: KG, Litro, etc.)"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Preço Total *</label>
+                            <input
+                                type="text"
+                                className="w-full border rounded-md p-2"
+                                value={precoInput}
+                                onChange={(e) => {
+                                    // Permitir apenas números e decimais
+                                    const value = e.target.value.replace(/[^0-9.]/g, '');
+                                    setPrecoInput(value);
+                                }}
+                                placeholder="Preço total"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Fornecedor</label>
+                            <input
+                                type="text"
+                                className="w-full border rounded-md p-2"
+                                value={newMaterial.fornecedor || ""}
+                                onChange={(e) =>
+                                    setNewMaterial({
+                                        ...newMaterial,
+                                        fornecedor: e.target.value,
+                                    })
+                                }
+                                placeholder="Nome do fornecedor"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <button
+                            className="px-4 py-2 border rounded-md hover:bg-gray-100"
+                            onClick={() => {
+                                setShowAddForm(false);
+                                setEditingMaterial(null);
+                                setNewMaterial({
+                                    categoria: "Material de Escritório",
+                                    nome: "",
+                                    quantidade: 0,
+                                    unidade: "",
+                                    preco: 0,
+                                    dataCriacao: new Date().toISOString(),
+                                    fornecedor: "",
+                                });
+                                setQuantidadeInput("");
+                                setPrecoInput("");
+                            }}
+                            type="button"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            onClick={editingMaterial ? handleUpdateMaterial : handleAddMaterial}
+                            type="button"
+                        >
+                            {editingMaterial ? "Atualizar" : "Adicionar"}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Tabela de materiais */}
+            {loading && materiais.length === 0 ? (
+                <div className="flex justify-center items-center h-40">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+                </div>
+            ) : (
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Categoria
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Nome
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Quantidade
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Valor Total
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Data Cadastro
+                                </th>
+                                <th className="px-9 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Ações
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {paginatedMateriais.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan={6}
+                                        className="px-6 py-8 text-center text-gray-500"
+                                    >
+                                        Nenhum material encontrado neste período
+                                    </td>
+                                </tr>
+                            ) : (
+                                paginatedMateriais.map((material) => (
+                                    <tr key={material.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="font-medium">{material.categoria}</span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {material.nome}
+                                            {material.fornecedor && (
+                                                <span className="text-xs text-gray-500 block">
+                                                    Fornecedor: {material.fornecedor}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {material.quantidade} {material.unidade}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            R$ {material.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {new Date(material.dataCriacao).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-4 flex space-x-2 py-4 whitespace-nowrap text-right">
+                                            <motion.div
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.95 }}
+                                            >
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => handleEditMaterial(material)}
+                                                >
+                                                    <Edit size={16} />
+                                                </Button>
+                                            </motion.div>
+                                            <motion.div
+                                                whileHover={{ scale: 1.1, opacity: 1 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                initial={{ opacity: 1 }}
+                                            >
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                    onClick={() => handleDeleteMaterial(material.id!)}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </Button>
+                                            </motion.div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+
+                    {/* Paginação */}
+                    {totalPages > 1 && (
+                        <div className="flex justify-between items-center px-6 py-3 bg-gray-50">
+                            <div className="text-sm text-gray-500">
+                                Mostrando {startIndex + 1} a {Math.min(startIndex + itemsPerPage, filteredMateriais.length)} de {filteredMateriais.length} itens
+                            </div>
+                            <div className="flex space-x-2">
+                                <button
+                                    className={`px-3 py-1 rounded-md ${currentPage === 1
+                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                        }`}
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(currentPage - 1)}
+                                >
+                                    Anterior
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <button
+                                        key={page}
+                                        className={`px-3 py-1 rounded-md ${page === currentPage
+                                            ? "bg-blue-600 text-white"
+                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                            }`}
+                                        onClick={() => setCurrentPage(page)}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                <button
+                                    className={`px-3 py-1 rounded-md ${currentPage === totalPages
+                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                        }`}
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    onClick={() => setCurrentPage(currentPage + 1)}
+                                >
+                                    Próximo
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
-      );
-    }
+    );
+}
