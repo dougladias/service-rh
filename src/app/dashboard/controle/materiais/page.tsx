@@ -423,7 +423,7 @@ export default function MaterialsPage() {
                     <div className="flex items-center">
                         <span className="mr-2 text-gray-500">📅</span>
                         <select
-                            className="border rounded-md p-2"
+                            className="border rounded-md p-2 dark:bg-gray-800"
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
                         >
@@ -437,7 +437,7 @@ export default function MaterialsPage() {
                     <div className="flex items-center">
                         <span className="mr-2 text-gray-500">📆</span>
                         <select
-                            className="border rounded-md p-2"
+                            className="border rounded-md p-2 dark:bg-gray-800"
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                         >
@@ -497,7 +497,7 @@ export default function MaterialsPage() {
                         <div>
                             <label className="block text-sm font-medium mb-1">Categoria *</label>
                             <select
-                                className="w-full border rounded-md p-2"
+                                className="w-full border rounded-md p-2 bg-white text-gray-900 dark:bg-gray-800 dark:text-white dark:border-gray-700"
                                 value={newMaterial.categoria}
                                 onChange={(e) =>
                                     setNewMaterial({ ...newMaterial, categoria: e.target.value })
