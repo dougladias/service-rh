@@ -23,7 +23,10 @@ import {
   BriefcaseBusiness,  
   Codesandbox,
   File,
-  Paperclip
+  Paperclip,  
+  CalendarDays,
+  ListTodo,
+  CalendarCheck
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -113,13 +116,7 @@ const menuItems: MenuItem[] = [
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       }
     ]
-  },
-  {
-    icon: FileText,
-    label: 'Lista de Tarefas',
-    href: '/dashboard/lista-tarefas',
-    allowedRoles: [UserRole.ASSISTENTE],
-  },
+  }, 
   {
     icon: FileText,
     label: 'Relatórios',
@@ -157,7 +154,27 @@ const menuItems: MenuItem[] = [
         allowedRoles: [UserRole.CEO, UserRole.ASSISTENTE]
       }
     ]
-  }  
+  },
+  {
+    icon: CalendarDays,
+    label: 'Agenda',
+    href: '/dashboard/agenda',
+    allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE],
+    subItems: [
+      {
+        icon: CalendarCheck,
+        label: 'Agenda',
+        href: '/dashboard/agenda',
+        allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE]
+      },
+      {
+        icon: ListTodo,
+        label: 'Lista de Tarefas',
+        href: '/dashboard/lista-tarefas',
+        allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE],
+      },     
+    ]
+  }    
 ]
 
 export default function Sidebar() {
