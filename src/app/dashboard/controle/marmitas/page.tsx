@@ -808,26 +808,8 @@ export default function MealControlPage() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    // Mapear todos os registros de hoje
+                                    // Usar o todayRecords memoizado em vez de recalcular
                                     (() => {
-                                        const todayRecords: {
-                                            control: MealControl;
-                                            record: MealRecord;
-                                        }[] = [];
-
-                                        // Coletar registros de hoje de todos os controles
-                                        filteredControls.forEach(control => {
-                                            control.mealRecords.forEach(record => {
-                                                const recordDate = parseISO(record.date as string);
-                                                if (isToday(recordDate)) {
-                                                    todayRecords.push({
-                                                        control,
-                                                        record
-                                                    });
-                                                }
-                                            });
-                                        });
-
                                         // Verificar se existem registros para hoje
                                         if (todayRecords.length === 0) {
                                             return (
@@ -857,20 +839,7 @@ export default function MealControlPage() {
                                             );
                                         }
 
-                                        // Ordenar registros por tipo de refeição (café da manhã primeiro, etc.)
-                                        const mealTypeOrder = {
-                                            'breakfast': 0,
-                                            'lunch': 1,
-                                            'dinner': 2,
-                                            'snack': 3
-                                        };
-
-                                        todayRecords.sort((a, b) => {
-                                            return mealTypeOrder[a.record.mealType as keyof typeof mealTypeOrder] -
-                                                mealTypeOrder[b.record.mealType as keyof typeof mealTypeOrder];
-                                        });
-
-                                        // Renderizar linhas da tabela
+                                        // Renderizar linhas da tabela usando o todayRecords memoizado
                                         return todayRecords.map(({ control, record }) => (
                                             <TableRow key={record._id ? record._id.toString() : `temp-${Math.random()}`}>
                                                 <TableCell className="font-medium">{control.employeeName}</TableCell>
