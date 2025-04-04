@@ -18,38 +18,7 @@ interface Todo {
 
 // Dados mockados para exemplo
 const mockTodos: Todo[] = [
-  {
-    id: '1',
-    title: 'Preparar folha de pagamento de abril',
-    priority: 'alta',
-    dueDate: '2025-04-05',
-    completed: false,
-    createdAt: '2025-03-20T10:00:00.000Z',
-  },
-  {
-    id: '2',
-    title: 'Revisar documentação de novos funcionários',
-    priority: 'normal',
-    dueDate: '2025-03-25',
-    completed: false,
-    createdAt: '2025-03-20T11:30:00.000Z',
-  },
-  {
-    id: '3',
-    title: 'Agendar entrevistas para vaga de marketing',
-    priority: 'urgente',
-    dueDate: '2025-03-23',
-    completed: false,
-    createdAt: '2025-03-19T14:00:00.000Z',
-  },
-  {
-    id: '4',
-    title: 'Atualizar planilha de benefícios',
-    priority: 'baixa',
-    dueDate: null,
-    completed: true,
-    createdAt: '2025-03-18T09:15:00.000Z',
-  },
+  
 ];
 
 export default function TodoPage() {

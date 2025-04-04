@@ -133,7 +133,7 @@ const menuItems: MenuItem[] = [
         icon: Clock,
         label: 'Ponto',
         href: '/dashboard/controle-ponto',
-        allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE]
+        allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
       {
         icon: CircleUser,
