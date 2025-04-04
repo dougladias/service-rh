@@ -27,7 +27,8 @@ import {
   CalendarDays,
   ListTodo,
   CalendarCheck,
-  StickyNote
+  StickyNote,
+  BadgeDollarSign
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -140,6 +141,13 @@ const menuItems: MenuItem[] = [
         icon: StickyNote,
         label: 'Notas Fiscais',
         href: '/dashboard/controle/notas-fiscais',        
+        allowedRoles: [UserRole.CEO, UserRole.ASSISTENTE]
+      },
+      {
+        icon: BadgeDollarSign,
+        label: 'Orçamentos',
+        href: '/dashboard/controle/orcamentos',
+                       
         allowedRoles: [UserRole.CEO, UserRole.ASSISTENTE]
       },
       {
