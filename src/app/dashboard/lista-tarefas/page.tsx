@@ -16,12 +16,14 @@ interface Todo {
   createdAt: string;
 }
 
-// Dados mockados para exemplo
-const mockTodos: Todo[] = [
-  
-];
-
 export default function TodoPage() {
+  // Estado para controlar se o componente está no cliente
+  const [isClient, setIsClient] = useState(false);
+  
+  // Efeito para definir isClient como true quando estiver no navegador
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
   
@@ -37,10 +39,34 @@ export default function TodoPage() {
   const [editPriority, setEditPriority] = useState<Priority>('normal');
   const [editDueDate, setEditDueDate] = useState('');
 
+  // Carregar tarefas do localStorage na inicialização - usando isClient para evitar erros com SSR
   useEffect(() => {
-    // Aqui você carregaria os dados do seu backend
-    setTodos(mockTodos);
-  }, []);
+    // Só executa quando isClient for true (componente montado no navegador)
+    if (isClient) {
+      const savedTodos = localStorage.getItem('todos');
+      console.log('Carregando do localStorage:', savedTodos);
+      
+      if (savedTodos) {
+        try {
+          const parsedTodos = JSON.parse(savedTodos);
+          setTodos(parsedTodos);
+          console.log('Tarefas carregadas com sucesso:', parsedTodos.length, 'tarefas');
+        } catch (error) {
+          console.error('Erro ao carregar tarefas do localStorage:', error);
+          setTodos([]);
+        }
+      }
+    }
+  }, [isClient]); // Dependência de isClient garante que só executa no cliente
+
+  // Salvar tarefas no localStorage sempre que forem atualizadas
+  useEffect(() => {
+    // Só salva quando isClient for true e não for a primeira renderização
+    if (isClient && todos.length > 0) {
+      console.log('Salvando no localStorage:', todos.length, 'tarefas');
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+  }, [todos, isClient]); // Adiciona isClient como dependência
 
   // Funções para o formulário de adição
   const handleSubmit = (e: React.FormEvent) => {
@@ -121,7 +147,7 @@ export default function TodoPage() {
   const getPriorityIcon = (priority: Priority) => {
     switch (priority) {
       case 'baixa':
-        return <Clock className="h-4 w-4 text-gray-500" />;
+        return <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
       case 'normal':
         return <Clock className="h-4 w-4 text-blue-500" />;
       case 'alta':
@@ -149,7 +175,7 @@ export default function TodoPage() {
         animate={{ y: 0 }}
         className="flex items-center justify-between"
       >
-        <h1 className="text-2xl font-bold tracking-tight dark:text-gray-300">Lista de Tarefas</h1>
+        <h1 className="text-2xl font-bold tracking-tight dark:text-gray-200">Lista de Tarefas</h1>
       </motion.div>
       
       {/* Formulário para adicionar nova tarefa */}
@@ -159,7 +185,7 @@ export default function TodoPage() {
         transition={{ delay: 0.1 }}
         className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 p-6 rounded-lg shadow"
       >
-        <h2 className="text-lg font-medium mb-4 dark:text-gray-300">Adicionar nova tarefa</h2>
+        <h2 className="text-lg font-medium mb-4 dark:text-gray-200">Adicionar nova tarefa</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="task" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -170,7 +196,7 @@ export default function TodoPage() {
               id="task"
               value={task}
               onChange={(e) => setTask(e.target.value)}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black dark:text-gray-300 dark:bg-gray-800"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
               placeholder="Digite a tarefa..."
               required
             />
@@ -185,7 +211,7 @@ export default function TodoPage() {
                 id="priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as Priority)}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black dark:text-gray-300 dark:bg-gray-800"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
               >
                 <option value="baixa">Baixa</option>
                 <option value="normal">Normal</option>
@@ -195,7 +221,7 @@ export default function TodoPage() {
             </div>
             
             <div>
-              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Data de vencimento
               </label>
               <input
@@ -203,7 +229,7 @@ export default function TodoPage() {
                 id="dueDate"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-black dark:text-gray-300 dark:bg-gray-800"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
               />
             </div>
           </div>
@@ -212,7 +238,7 @@ export default function TodoPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex items-center justify-center rounded-md bg-blue-600 dark:bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <PlusCircle className="mr-2 h-4 w-4" />
             Adicionar Tarefa
@@ -225,11 +251,11 @@ export default function TodoPage() {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow"
+        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow"
       >
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium text-black dark:text-gray-300">Suas tarefas</h2>
+          <h2 className="text-lg font-medium text-black dark:text-gray-200">Suas tarefas</h2>
             <div className="flex space-x-2">
               <motion.button 
                 whileHover={{ scale: 1.05 }}
@@ -278,7 +304,7 @@ export default function TodoPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="p-4 text-center text-gray-500 dark:text-gray-300"
+                className="p-4 text-center text-gray-500 dark:text-gray-400"
               >
                 Nenhuma tarefa encontrada
               </motion.li>
@@ -292,7 +318,7 @@ export default function TodoPage() {
                     <motion.li 
                       key={todo.id}
                       initial={{ backgroundColor: "rgba(239, 246, 255, 0)" }}
-                      animate={{ backgroundColor: "rgba(239, 246, 255, 1)" }}
+                      animate={{ backgroundColor: "rgba(239, 246, 255, 0.5)" }}
                       className="p-4 bg-blue-50 dark:bg-blue-900/20"
                     >
                       <div className="space-y-3 dark:bg-gray-800 rounded-xl p-3">
@@ -300,7 +326,7 @@ export default function TodoPage() {
                           type="text"
                           value={editTask}
                           onChange={(e) => setEditTask(e.target.value)}
-                          className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-300"
+                          className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
                           placeholder="Descrição da tarefa"
                           required
                         />
@@ -309,7 +335,7 @@ export default function TodoPage() {
                           <select
                             value={editPriority}
                             onChange={(e) => setEditPriority(e.target.value as Priority)}
-                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-300"
+                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
                           >
                             <option value="baixa">Baixa</option>
                             <option value="normal">Normal</option>
@@ -321,7 +347,7 @@ export default function TodoPage() {
                             type="date"
                             value={editDueDate}
                             onChange={(e) => setEditDueDate(e.target.value)}
-                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-300"
+                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
                           />
                         </div>
                         
@@ -339,7 +365,7 @@ export default function TodoPage() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={saveEdit}
-                            className="flex items-center justify-center rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="flex items-center justify-center rounded-md bg-blue-600 dark:bg-blue-500 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
                             <Save className="mr-1 h-4 w-4" />
                             Salvar
@@ -360,7 +386,7 @@ export default function TodoPage() {
                       transition: { delay: index * 0.05 }
                     }}
                     whileHover={{ backgroundColor: "rgba(249, 250, 251, 0.5)" }}
-                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                    className="p-4"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3">
@@ -394,7 +420,7 @@ export default function TodoPage() {
                             
                             {todo.dueDate && (
                               <span className={`inline-flex items-center ${
-                                isOverdue ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'
+                                isOverdue ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
                               }`}>
                                 <Clock className="mr-1 h-3 w-3" />
                                 {new Date(todo.dueDate).toLocaleDateString('pt-BR')}
