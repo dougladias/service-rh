@@ -111,15 +111,87 @@ export default function EmployeesPage() {
 
   // Update worker details mutation
   const updateWorkerDetails = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       workerId,
       updates,
     }: {
       workerId: string;
       updates: Partial<IWorker>;
-    }) => axios.put("/api/workers", { id: workerId, updates }),
+    }) => {
+      // Primeiro, atualizar o funcionário
+      const response = await axios.put("/api/workers", { id: workerId, updates });
+      
+      // Se a ajuda de custo foi atualizada, sincronizar com benefícios
+      if (updates.ajuda !== undefined) {
+        try {
+          // Definindo a interface para o tipo de benefício
+          interface BenefitType {
+            _id: string;
+            name: string;
+            // Adicione outras propriedades conforme necessário
+          }
+          
+          // Buscar os tipos de benefício para encontrar "Ajuda de Custo"
+          const benefitTypesResponse = await axios.get('/api/benefit-types');
+          const benefitTypes = benefitTypesResponse.data as BenefitType[];
+          const ajudaDeCustoBenefitType = benefitTypes.find((type: BenefitType) => 
+            type.name.toLowerCase() === 'ajuda de custo');
+          
+          if (ajudaDeCustoBenefitType) {
+            // Buscar os benefícios do funcionário
+            const employeeBenefitsResponse = await axios.get(`/api/employee-benefits?employeeId=${workerId}`);
+            const employeeBenefits = employeeBenefitsResponse.data;
+            
+            // Verificar se já existe um benefício de Ajuda de Custo para este funcionário
+            interface EmployeeBenefit {
+              _id: string;
+              benefitTypeId: string;
+              employeeId: string;
+              value: number;
+              status: string;
+            }
+            
+            const existingAjudaBenefit = employeeBenefits.find((benefit: EmployeeBenefit) => 
+                          benefit.benefitTypeId === ajudaDeCustoBenefitType._id &&
+                          benefit.status === 'active'
+                        );
+            
+            if (updates.ajuda && parseFloat(updates.ajuda) > 0) {
+              // Se não existe e o valor é maior que zero, criar o benefício
+              if (!existingAjudaBenefit) {
+                await axios.post('/api/employee-benefits', {
+                  employeeId: workerId,
+                  benefitTypeId: ajudaDeCustoBenefitType._id,
+                  value: parseFloat(updates.ajuda),
+                  status: 'active'
+                });
+              } 
+              // Se existe, atualizar o valor
+              else if (existingAjudaBenefit && parseFloat(updates.ajuda) !== existingAjudaBenefit.value) {
+                await axios.put(`/api/employee-benefits?id=${existingAjudaBenefit._id}`, {
+                  value: parseFloat(updates.ajuda)
+                });
+              }
+            } 
+            // Se o valor foi zerado ou removido, desativar o benefício se existir
+            else if (existingAjudaBenefit) {
+              await axios.put(`/api/employee-benefits?id=${existingAjudaBenefit._id}`, {
+                status: 'inactive'
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao sincronizar benefício de Ajuda de Custo:", error);
+          // Mesmo com erro na sincronização, o funcionário foi atualizado com sucesso
+        }
+      }
+      
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workers"] });
+      // Invalidar também os benefícios, pois podem ter sido atualizados
+      queryClient.invalidateQueries({ queryKey: ["allEmployeeBenefits"] });
       setIsEditModalOpen(false);
     },
     onError: (err) => {
@@ -190,6 +262,7 @@ export default function EmployeesPage() {
     nascimento: string;
     admissao: string;
     salario: string;
+    ajuda: string; // Incluir campo de ajuda de custo
     numero: string;
     email: string;
     address: string;

@@ -82,7 +82,24 @@ interface Employee {
   name: string;
   role: string;
   department: string;
+  ajuda?: string; // Campo para ajuda de custo
 }
+
+// Primeiro, adicione este CSS em algum lugar do seu arquivo ou em um arquivo CSS global
+// Este CSS remove as setas de incremento/decremento dos inputs de tipo number
+const inputStyles = `
+  /* Remover setas de input number - Chrome, Safari, Edge, Opera */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Remover setas de input number - Firefox */
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+`;
 
 export default function BeneficiosPage() {
   const queryClient = useQueryClient()
@@ -108,6 +125,9 @@ export default function BeneficiosPage() {
   // Estados para edição de tipo de benefício
   const [isEditingBenefitType, setIsEditingBenefitType] = useState(false)
   const [editingBenefitType, setEditingBenefitType] = useState<BenefitType | null>(null)
+
+  // Adicione este estado para armazenar os valores sendo editados
+  const [editingValues, setEditingValues] = useState<Record<string, string>>({});
 
   // Buscar tipos de benefícios
   const {
@@ -158,6 +178,90 @@ export default function BeneficiosPage() {
       : Promise.resolve([]),
     enabled: !!selectedEmployee
   })
+
+  // NOVO: Sincronizar ajuda de custo como benefício
+  useEffect(() => {
+    // Sincronizar ajuda de custo como benefício
+    const syncAjudaDeCusto = async () => {
+      if (!employees.length || !benefitTypes.length) return;
+      
+      // Encontrar o tipo de benefício "Ajuda de Custo" (ou criar se não existir)
+      let ajudaDeCustoBenefitType = benefitTypes.find(type => 
+        type.name.toLowerCase() === 'ajuda de custo');
+      
+      if (!ajudaDeCustoBenefitType) {
+        try {
+          // Se não existir, criar o tipo de benefício
+          const response = await axios.post('/api/benefit-types', {
+            name: 'Ajuda de Custo',
+            description: 'Ajuda de custo para funcionários',
+            hasDiscount: false,
+            defaultValue: 0,
+            status: 'active'
+          });
+          ajudaDeCustoBenefitType = response.data;
+          
+          // Forçar atualização dos tipos de benefício
+          queryClient.invalidateQueries({ queryKey: ['benefitTypes'] });
+        } catch (error) {
+          console.error('Erro ao criar tipo de benefício para Ajuda de Custo:', error);
+          return;
+        }
+      }
+      
+      // Para cada funcionário que tenha ajuda de custo
+      for (const employee of employees) {
+        if (employee.ajuda && parseFloat(employee.ajuda) > 0) {
+          // Verificar com mais precisão se o benefício já existe
+          const existingAjudaBenefit = await axios.get('/api/employee-benefits', {
+            params: { 
+              employeeId: employee._id,
+              status: 'active'
+            }
+          }).then(res => {
+            // Add null check before accessing _id
+            const benefits: EmployeeBenefit[] = res.data;
+            return benefits.find(b => 
+              ajudaDeCustoBenefitType && b.benefitTypeId === ajudaDeCustoBenefitType._id
+            );
+          });
+          
+          // Se não existe, criar o benefício
+          if (!existingAjudaBenefit && ajudaDeCustoBenefitType) {
+            try {
+              await axios.post('/api/employee-benefits', {
+                employeeId: employee._id,
+                benefitTypeId: ajudaDeCustoBenefitType._id,
+                value: parseFloat(employee.ajuda),
+                status: 'active'
+              });
+              
+              // Atualizar a lista de benefícios
+              queryClient.invalidateQueries({ queryKey: ['allEmployeeBenefits'] });
+            } catch (error) {
+              console.error(`Erro ao criar benefício de Ajuda de Custo para funcionário ${employee.name}:`, error);
+            }
+          } 
+          // Se existe, mas o valor está diferente, atualizar
+          else if (existingAjudaBenefit && parseFloat(employee.ajuda) !== existingAjudaBenefit.value) {
+            try {
+              await axios.put(`/api/employee-benefits?id=${existingAjudaBenefit._id}`, {
+                value: parseFloat(employee.ajuda)
+              });
+              
+              // Atualizar a lista de benefícios
+              queryClient.invalidateQueries({ queryKey: ['allEmployeeBenefits'] });
+            } catch (error) {
+              console.error(`Erro ao atualizar benefício de Ajuda de Custo para funcionário ${employee.name}:`, error);
+            }
+          }
+        }
+      }
+    };
+    
+    // Executar a sincronização
+    syncAjudaDeCusto();
+  }, [employees, benefitTypes, allEmployeeBenefits, queryClient]);
 
   // Mutation para adicionar benefício
   const addBenefitMutation = useMutation({
@@ -366,6 +470,84 @@ export default function BeneficiosPage() {
     })
   }
 
+  // Adicione esta função para gerenciar a mudança no valor
+  const handleBenefitValueChange = (benefitId: string, value: string) => {
+    // Armazenar o valor sendo editado
+    setEditingValues(prev => ({
+      ...prev,
+      [benefitId]: value
+    }));
+  };
+
+  // Substitua a função handleBenefitValueBlur existente por esta versão aprimorada
+const handleBenefitValueBlur = (benefit: EmployeeBenefit) => {
+  const newValue = editingValues[benefit._id];
+  
+  // Se não houver valor editado ou for o mesmo valor, não faz nada
+  if (newValue === undefined || parseFloat(newValue) === benefit.value) {
+    return;
+  }
+  
+  // Converter para número e verificar se é válido
+  const numericValue = parseFloat(newValue);
+  if (isNaN(numericValue)) {
+    // Se não for um número válido, reverter para o valor original
+    setEditingValues(prev => ({
+      ...prev,
+      [benefit._id]: benefit.value.toString()
+    }));
+    return;
+  }
+  
+  // Aplica a mudança com callback de sucesso
+  updateBenefitMutation.mutate(
+    {
+      benefitId: benefit._id,
+      updateData: { 
+        value: numericValue
+      }
+    },
+    {
+      onSuccess: (data) => {
+        // Após sucesso, atualiza o estado editingValues com o novo valor confirmado
+        console.log('Benefício atualizado com sucesso:', data);
+        
+        // Isso é importante: atualizar o cache do React Query com o valor atualizado
+        queryClient.setQueryData(
+          ['employeeBenefits', selectedEmployee],
+          (oldData: EmployeeBenefit[] | undefined) => {
+            if (!oldData) return undefined;
+            
+            return oldData.map(b => 
+              b._id === benefit._id ? { ...b, value: numericValue } : b
+            );
+          }
+        );
+        
+        queryClient.setQueryData(
+          ['allEmployeeBenefits'],
+          (oldData: EmployeeBenefit[] | undefined) => {
+            if (!oldData) return undefined;
+            
+            return oldData.map(b => 
+              b._id === benefit._id ? { ...b, value: numericValue } : b
+            );
+          }
+        );
+      },
+      onError: (error) => {
+        console.error('Erro ao atualizar benefício:', error);
+        // Reverta para o valor original em caso de erro
+        setEditingValues(prev => ({
+          ...prev,
+          [benefit._id]: benefit.value.toString()
+        }));
+        alert('Erro ao atualizar o benefício. Tente novamente.');
+      }
+    }
+  );
+};
+
   // Efeito para log de erro
   useEffect(() => {
     if (benefitTypesError) {
@@ -375,6 +557,9 @@ export default function BeneficiosPage() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Adicione o CSS inline */}
+      <style>{inputStyles}</style>
+      
       <div className="flex items-center gap-2 mb-8">
         <Link href="/dashboard/folha-pagamento">
           <Button variant="outline" size="icon">
@@ -674,6 +859,9 @@ export default function BeneficiosPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Benefícios Atuais</CardTitle>
+                  <CardDescription>
+                    Benefícios com tag &quot;Auto&quot; são sincronizados automaticamente com o campo &quot;Ajuda&quot; do funcionário
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -690,27 +878,35 @@ export default function BeneficiosPage() {
                         .filter(b => b.employeeId === selectedEmployee)
                         .map((benefit) => {
                           const BenefitIcon = getBenefitIcon(benefit.benefitType?.name || '')
+                          // Verificar se este é um benefício de "Ajuda de Custo" (para permitir edição mas mostrar origem)
+                          const isAjudaDeCusto = benefit.benefitType?.name.toLowerCase() === 'ajuda de custo';
                           return (
                             <TableRow key={benefit._id}>
                               <TableCell>
                                 <div className="flex items-center">
                                   <BenefitIcon className="mr-2 h-4 w-4" />
                                   <span>{benefit.benefitType?.name}</span>
+                                  {isAjudaDeCusto && (
+                                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                      Auto
+                                    </span>
+                                  )}
                                 </div>
                               </TableCell>
                               <TableCell className="text-right">
                                 <Input
-                                  type="number"
-                                  value={benefit.value}
-                                  onChange={(e) => {
-                                    const newValue = parseFloat(e.target.value)
-                                    updateBenefitMutation.mutate({
-                                      benefitId: benefit._id,
-                                      updateData: { value: newValue }
-                                    })
+                                  type="text" // Mudado de "number" para "text"
+                                  value={editingValues[benefit._id] !== undefined 
+                                    ? editingValues[benefit._id] 
+                                    : benefit.value.toString()}
+                                  onChange={(e) => handleBenefitValueChange(benefit._id, e.target.value)}
+                                  onBlur={() => handleBenefitValueBlur(benefit)}
+                                  onKeyDown={(e) => {
+                                    // Aplica a mudança quando o usuário pressiona Enter
+                                    if (e.key === 'Enter') {
+                                      e.currentTarget.blur();
+                                    }
                                   }}
-                                  step="0.01"
-                                  min="0"
                                   className="w-28 ml-auto text-right"
                                 />
                               </TableCell>
