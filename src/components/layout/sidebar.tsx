@@ -28,7 +28,8 @@ import {
   ListTodo,
   CalendarCheck,
   StickyNote,
-  BadgeDollarSign
+  BadgeDollarSign,
+  Utensils
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -136,6 +137,12 @@ const menuItems: MenuItem[] = [
         label: 'Ponto',
         href: '/dashboard/controle-ponto',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
+      },
+      {
+        icon: Utensils,
+        label: 'Marmita',
+        href: '/dashboard/controle/marmitas',
+        allowedRoles: [UserRole.CEO, UserRole.ADMIN,UserRole.ASSISTENTE]
       },
       {
         icon: StickyNote,
