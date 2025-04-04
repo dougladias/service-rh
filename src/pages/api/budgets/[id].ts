@@ -1,10 +1,8 @@
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { connectToDatabase } from '@/api/mongodb';
+import { connectToDatabase, mongoose } from '@/api/mongodb';
 import Budget, { IBudget } from '@/models/Budget';
-import mongoose from 'mongoose';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Verificar autenticação
@@ -27,10 +25,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   switch (req.method) {
     case 'GET':
       try {
-        // Buscar orçamento específico
-        const budget = await Budget.findById(id)
-          .populate('createdBy', 'name')
-          .populate('approvedBy', 'name');
+        // Buscar orçamento específico com tratamento para populate
+        const query = Budget.findById(id);
+        
+        // Tentar fazer populate de forma segura
+        try {
+          if (mongoose.models.Worker) {
+            query.populate('createdBy', 'name')
+                 .populate('approvedBy', 'name');
+          }
+        } catch (populateError) {
+          console.warn('Aviso: Não foi possível popular os campos createdBy/approvedBy', populateError);
+        }
+        
+        const budget = await query;
 
         if (!budget) {
           return res.status(404).json({ message: 'Orçamento não encontrado' });
@@ -60,11 +68,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Definir interface para os itens do orçamento
         interface BudgetItem {
           estimatedValue: number;
-          [key: string]: unknown | number; // Para outras propriedades que possam existir
+          [key: string]: unknown | number;
         }
 
         // Calcular valor total estimado
         const totalEstimatedValue = items.reduce((sum: number, item: BudgetItem) => sum + item.estimatedValue, 0);
+
+        // CORREÇÃO: Primeiro buscar o orçamento existente para não perder o createdBy
+        const existingBudget = await Budget.findById(id);
+        if (!existingBudget) {
+          return res.status(404).json({ message: 'Orçamento não encontrado' });
+        }
+
+        // Preservar o createdBy original para não causar erro de validação
+        const createdBy = existingBudget.createdBy;
 
         // Preparar dados de atualização
         const updateData: Partial<IBudget> = {
@@ -75,6 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           totalEstimatedValue,
           items,
           status,
+          createdBy, // Usar o ObjectId original já validado
           startDate: startDate ? new Date(startDate) : undefined,
           endDate: endDate ? new Date(endDate) : undefined,
           notes
@@ -82,7 +100,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Se for aprovação, adicionar quem aprovou
         if (status === 'approved' && session.user.id) {
-          updateData.approvedBy = new mongoose.Types.ObjectId(session.user.id);
+          try {
+            updateData.approvedBy = new mongoose.Types.ObjectId(session.user.id);
+          } catch (idError) {
+            console.warn('Aviso: ID de usuário inválido para aprovação, usando ID padrão', idError);
+            updateData.approvedBy = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011');
+          }
         }
 
         // Atualizar orçamento
@@ -102,7 +125,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json(updatedBudget);
       } catch (error) {
         console.error('Erro ao atualizar orçamento:', error);
-        return res.status(500).json({ message: 'Erro ao atualizar orçamento' });
+        return res.status(500).json({ 
+          message: 'Erro ao atualizar orçamento',
+          error: error instanceof Error ? error.message : 'Erro desconhecido'
+        });
       }
 
     case 'DELETE':

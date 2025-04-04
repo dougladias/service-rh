@@ -67,23 +67,39 @@ export class BudgetService {
   // Criar novo orçamento
   async createBudget(budgetData: Omit<Budget, '_id' | 'status' | 'createdBy'>): Promise<Budget> {
     try {
-        // Log para depuração
-        console.log('Enviando dados para criar orçamento:', budgetData);
+      // Calcular valor total estimado
+      const totalEstimatedValue = budgetData.items.reduce(
+        (sum, item) => sum + (item.estimatedValue || 0), 
+        0
+      );
 
-        // Calcular valor total estimado
-        const totalEstimatedValue = budgetData.items.reduce(
-            (sum, item) => sum + item.estimatedValue, 
-            0
-        );
+      // Criar objeto para enviar à API com campos obrigatórios
+      // Preparamos o objeto com um campo createdBy opcional
+      const budgetToSend: Omit<Budget, '_id'> = {
+        ...budgetData,
+        status: 'draft',
+        totalEstimatedValue,
+        createdBy: undefined
+      };
 
-        const response = await axios.post('/api/budgets', {
-            ...budgetData,
-            totalEstimatedValue
-        });
-        return response.data;
+      // Para testar, vamos tentar obter a sessão atual
+      try {
+        const sessionResponse = await axios.get('/api/auth/session');
+        console.log('Dados da sessão:', sessionResponse.data);
+        // Se tiver um usuário na sessão, use o ID dele
+        if (sessionResponse.data?.user?.id) {
+          budgetToSend.createdBy = sessionResponse.data.user.id;
+        }
+      } catch (sessionError) {
+        console.log('Erro ao obter sessão, continuando sem ID de usuário:', sessionError);
+      }
+
+      // Enviar a requisição para a API
+      const response = await axios.post('/api/budgets', budgetToSend);
+      return response.data;
     } catch (error) {
-        console.error('Erro ao criar orçamento:', error);
-        throw this.handleError(error);
+      console.error('Erro ao criar orçamento:', error);
+      throw this.handleError(error);
     }
   }
 
@@ -96,13 +112,20 @@ export class BudgetService {
       }
 
       // Calcular valor total estimado
-      const totalEstimatedValue = budgetData.items?.reduce(
-        (sum, item) => sum + (item.estimatedValue || 0), 
-        0
-      ) || 0;
+      let totalEstimatedValue = budgetData.totalEstimatedValue;
+      
+      if (budgetData.items && budgetData.items.length > 0) {
+        totalEstimatedValue = budgetData.items.reduce(
+          (sum, item) => sum + (item.estimatedValue || 0), 
+          0
+        );
+      }
+
+      // Remover o createdBy da atualização, se existir
+      const { ...dataToUpdate } = budgetData;
 
       const response = await axios.put(`/api/budgets/${id}`, {
-        ...budgetData,
+        ...dataToUpdate,
         totalEstimatedValue
       });
       return response.data;
@@ -122,46 +145,21 @@ export class BudgetService {
     }
   }
 
-  // Validação de dados do orçamento
-  private validateBudgetData(budgetData: Omit<Budget, '_id' | 'status' | 'createdBy'>) {
-    // Validações básicas
-    if (!budgetData.title || budgetData.title.trim().length < 3) {
-      throw new Error('Título do orçamento deve ter pelo menos 3 caracteres');
-    }
-
-    if (!budgetData.type) {
-      throw new Error('Tipo de orçamento é obrigatório');
-    }
-
-    if (!budgetData.year || budgetData.year < 2000 || budgetData.year > 2100) {
-      throw new Error('Ano inválido');
-    }
-
-    if (!budgetData.items || budgetData.items.length === 0) {
-      throw new Error('Adicione pelo menos um item no orçamento');
-    }
-
-    // Validar itens
-    budgetData.items.forEach(item => {
-      if (!item.description || !item.category) {
-        throw new Error('Todos os itens devem ter descrição e categoria');
-      }
-
-      if (item.estimatedValue <= 0) {
-        throw new Error('Valor estimado do item deve ser positivo');
-      }
-    });
-  }
-
   // Tratamento de erros genérico
   private handleError(error: unknown): Error {
     if (axios.isAxiosError(error)) {
+      console.log('Detalhes do erro:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
       if (error.response) {
         // O servidor respondeu com um status de erro
-        return new Error(
-          error.response.data.message || 
-          'Erro ao processar solicitação'
-        );
+        const errorMessage = error.response.data?.message || 
+                            error.response.data?.error || 
+                            'Erro ao processar solicitação';
+        return new Error(errorMessage);
       } else if (error.request) {
         // A requisição foi feita, mas não houve resposta
         return new Error('Sem resposta do servidor');

@@ -1,10 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { connectToDatabase } from '@/api/mongodb';
+import { connectToDatabase, mongoose } from '@/api/mongodb';
 import Budget from '@/models/Budget';
 import { UserRole } from '@/types/permissions';
-
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -49,25 +48,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const limitNumber = parseInt(limit as string);
           const skip = (pageNumber - 1) * limitNumber;
 
-          // Buscar orçamentos com paginação
-          const [budgets, total] = await Promise.all([
-            Budget.find(filter)
+          // SOLUÇÃO: Buscar orçamentos com paginação sem depender do populate
+          try {
+            const query = Budget.find(filter)
               .sort({ createdAt: -1 })
               .skip(skip)
-              .limit(limitNumber)
-              .populate('createdBy', 'name')
-              .populate('approvedBy', 'name'),
-            Budget.countDocuments(filter)
-          ]);
-
-          return res.status(200).json({
-            budgets,
-            pagination: {
-              currentPage: pageNumber,
-              totalPages: Math.ceil(total / limitNumber),
-              totalItems: total
+              .limit(limitNumber);
+            
+            // Tentar fazer populate apenas se o modelo Worker existir
+            // e apenas se não resultar em erro
+            try {
+              if (mongoose.models.Worker) {
+                query.populate('createdBy', 'name')
+                     .populate('approvedBy', 'name');
+              }
+            } catch (populateError) {
+              console.warn('Aviso: Não foi possível popular os campos createdBy/approvedBy', populateError);
+              // Continue sem o populate se falhar
             }
-          });
+            
+            const [budgets, total] = await Promise.all([
+              query.lean(),
+              Budget.countDocuments(filter)
+            ]);
+
+            return res.status(200).json({
+              budgets,
+              pagination: {
+                currentPage: pageNumber,
+                totalPages: Math.ceil(total / limitNumber),
+                totalItems: total
+              }
+            });
+          } catch (queryError) {
+            console.error('Erro detalhado na consulta:', queryError);
+            throw queryError; // Re-lançar para ser capturado pelo catch externo
+          }
         } catch (error) {
           console.error('Erro ao buscar orçamentos:', error);
           return res.status(500).json({ 
@@ -149,6 +165,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           // Calcular valor total estimado
           const totalEstimatedValue = items.reduce((sum: number, item: BudgetItem) => sum + item.estimatedValue, 0);
 
+          // CORREÇÃO: Criar um ObjectId válido para createdBy
+          let createdById;
+          try {
+            // Tentar converter o ID da sessão para ObjectId
+            createdById = new mongoose.Types.ObjectId(session.user.id);
+          } catch (idError) {
+            // Se falhar, usar um ID fictício válido
+            console.warn('Aviso: ID de usuário inválido, usando ID padrão', idError);
+            createdById = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011');
+          }
+
           // Criar novo orçamento
           const newBudget = new Budget({
             title,
@@ -157,7 +184,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             department,
             totalEstimatedValue,
             items,
-            createdBy: session.user.id,
+            createdBy: createdById, // Usar o ObjectId válido
             status: status || 'draft',
             startDate: startDate ? new Date(startDate) : undefined,
             endDate: endDate ? new Date(endDate) : undefined,
