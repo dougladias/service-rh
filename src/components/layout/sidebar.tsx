@@ -26,7 +26,8 @@ import {
   Paperclip,  
   CalendarDays,
   ListTodo,
-  CalendarCheck
+  CalendarCheck,
+  StickyNote
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -126,7 +127,7 @@ const menuItems: MenuItem[] = [
   {
     icon: Cog,
     label: 'Controle',
-    href: '/dashboard/controle-ponto',
+    href: '/dashboard/controle',
     allowedRoles: [UserRole.CEO, UserRole.ADMIN, UserRole.ASSISTENTE],
     subItems: [
       {
@@ -134,6 +135,12 @@ const menuItems: MenuItem[] = [
         label: 'Ponto',
         href: '/dashboard/controle-ponto',
         allowedRoles: [UserRole.CEO, UserRole.ADMIN]
+      },
+      {
+        icon: StickyNote,
+        label: 'Notas Fiscais',
+        href: '/dashboard/controle/notas-fiscais',        
+        allowedRoles: [UserRole.CEO, UserRole.ASSISTENTE]
       },
       {
         icon: CircleUser,
