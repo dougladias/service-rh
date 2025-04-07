@@ -155,7 +155,7 @@ const menuItems: MenuItem[] = [
         label: 'Orçamentos',
         href: '/dashboard/controle/orcamentos',
                        
-        allowedRoles: [UserRole.CEO, UserRole.ASSISTENTE]
+        allowedRoles: [UserRole.CEO, UserRole.ADMIN]
       },
       {
         icon: CircleUser,
