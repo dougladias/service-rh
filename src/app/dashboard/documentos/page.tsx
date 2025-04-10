@@ -67,7 +67,9 @@ import {
   Briefcase,
   Heart,
   UserPlus,
-  UserMinus  
+  UserMinus,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 
 // Interface para o documento
@@ -111,7 +113,9 @@ const departments = [
   "Financeiro",
   "Vendas",
   "RH",
-  "Administrativo"
+  "Administrativo",
+  "Compliance",
+  "Operações"
 ]
 
 export default function DocumentosPage() {
@@ -126,6 +130,10 @@ export default function DocumentosPage() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // Estados para paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   
   const [newDocument, setNewDocument] = useState({
     name: "",
@@ -192,6 +200,18 @@ export default function DocumentosPage() {
     
     return matchesSearch && matchesTab && matchesType && matchesDept;
   });
+  
+  // Cálculos para paginação
+  const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedDocuments = filteredDocuments.slice(startIndex, startIndex + itemsPerPage);
+  
+  // Verificar se a página atual existe após filtragem
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [filteredDocuments, currentPage, totalPages]);
   
   // Função para obter o ícone do tipo de arquivo
   const getFileIcon = (fileType: string) => {
@@ -413,129 +433,189 @@ export default function DocumentosPage() {
                   <div className="animate-spin h-8 w-8 border-4 border-cyan-500 rounded-full border-t-transparent"></div>
                 </div>
               ) : filteredDocuments.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Documento</TableHead>
-                      <TableHead>Funcionário</TableHead>
-                      <TableHead>Departamento</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Data de Envio</TableHead>
-                      <TableHead>Validade</TableHead>
-                      <TableHead className="text-center">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredDocuments.map((doc) => {
-                      const DocTypeIcon = getDocTypeIcon(doc.type);
-                      
-                      return (
-                        <TableRow key={doc._id}>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              {getFileIcon(doc.fileType)}
-                              <span className="font-medium">{doc.name}</span>
-                            </div>
-                            <div className="flex mt-1 space-x-1">
-                              {doc.tags && doc.tags.map((tag, tagIndex) => (
-                                <span 
-                                  key={`tag-${doc._id}-${tagIndex}`}
-                                  className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                            <div className="mt-1 text-xs text-gray-500">
-                              {formatFileSize(parseInt(doc.size))}
-                            </div>
-                          </TableCell>
-                          <TableCell>{doc.employee}</TableCell>
-                          <TableCell>{doc.department}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <DocTypeIcon className="h-4 w-4" />
-                              <span>{doc.type}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Calendar className="h-4 w-4 text-gray-400" />
-                              <span>{doc.uploadDate}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Clock className="h-4 w-4 text-gray-400" />
-                              <span>{doc.expiryDate}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex justify-center space-x-2">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon"
-                                      onClick={() => handleViewDocument(doc)}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Visualizar</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon"
-                                      onClick={() => handleDownloadDocument(doc)}
-                                    >
-                                      <Download className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Baixar</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                                  <DropdownMenuItem onClick={() => handleViewDocument(doc)}>
-                                    <Eye className="mr-2 h-4 w-4" /> Visualizar
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleDownloadDocument(doc)}>
-                                    <Download className="mr-2 h-4 w-4" /> Baixar
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    className="text-red-600"
-                                    onClick={() => handleDeleteDocument(doc._id)}
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Documento</TableHead>
+                        <TableHead>Funcionário</TableHead>
+                        <TableHead>Departamento</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Data de Envio</TableHead>
+                        <TableHead>Validade</TableHead>
+                        <TableHead className="text-center">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedDocuments.map((doc) => {
+                        const DocTypeIcon = getDocTypeIcon(doc.type);
+                        
+                        return (
+                          <TableRow key={doc._id}>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                {getFileIcon(doc.fileType)}
+                                <span className="font-medium">{doc.name}</span>
+                              </div>
+                              <div className="flex mt-1 space-x-1">
+                                {doc.tags && doc.tags.map((tag, tagIndex) => (
+                                  <span 
+                                    key={`tag-${doc._id}-${tagIndex}`}
+                                    className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
                                   >
-                                    <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="mt-1 text-xs text-gray-500">
+                                {formatFileSize(parseInt(doc.size))}
+                              </div>
+                            </TableCell>
+                            <TableCell>{doc.employee}</TableCell>
+                            <TableCell>{doc.department}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <DocTypeIcon className="h-4 w-4" />
+                                <span>{doc.type}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Calendar className="h-4 w-4 text-gray-400" />
+                                <span>{doc.uploadDate}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Clock className="h-4 w-4 text-gray-400" />
+                                <span>{doc.expiryDate}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex justify-center space-x-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        onClick={() => handleViewDocument(doc)}
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Visualizar</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        onClick={() => handleDownloadDocument(doc)}
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Baixar</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => handleViewDocument(doc)}>
+                                      <Eye className="mr-2 h-4 w-4" /> Visualizar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDownloadDocument(doc)}>
+                                      <Download className="mr-2 h-4 w-4" /> Baixar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      className="text-red-600"
+                                      onClick={() => handleDeleteDocument(doc._id)}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                  
+                  {/* Paginação */}
+                  {totalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row justify-between items-center px-4 py-3 bg-gray-50 dark:bg-gray-800">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2 sm:mb-0">
+                        Mostrando {startIndex + 1} a {Math.min(startIndex + itemsPerPage, filteredDocuments.length)} de {filteredDocuments.length} documentos
+                      </div>
+                      <div className="flex space-x-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="h-8 px-2"
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" />
+                          Anterior
+                        </Button>
+                        
+                        {/* Lógica para exibir um número limitado de botões de páginas */}
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(pageNum)}
+                              className="h-8 w-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="h-8 px-2"
+                        >
+                          Próximo
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center p-8 text-center">
                   <FileText className="h-12 w-12 text-gray-300 mb-4" />
@@ -692,15 +772,16 @@ export default function DocumentosPage() {
                   <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
                   Enviando...
                 </>
-              ) : (<>
-                <Upload className="mr-2 h-4 w-4" />
-                Enviar Documento
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  </div>
-)
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Enviar Documento
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }
