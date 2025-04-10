@@ -19,19 +19,19 @@ interface Todo {
 export default function TodoPage() {
   // Estado para controlar se o componente está no cliente
   const [isClient, setIsClient] = useState(false);
-  
+
   // Efeito para definir isClient como true quando estiver no navegador
   useEffect(() => {
     setIsClient(true);
   }, []);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
-  
+
   // Form states
   const [task, setTask] = useState('');
   const [priority, setPriority] = useState<Priority>('normal');
   const [dueDate, setDueDate] = useState('');
-  
+
   // Edit mode states
   const [editMode, setEditMode] = useState(false);
   const [editId, setEditId] = useState('');
@@ -45,7 +45,7 @@ export default function TodoPage() {
     if (isClient) {
       const savedTodos = localStorage.getItem('todos');
       console.log('Carregando do localStorage:', savedTodos);
-      
+
       if (savedTodos) {
         try {
           const parsedTodos = JSON.parse(savedTodos);
@@ -71,13 +71,13 @@ export default function TodoPage() {
   // Funções para o formulário de adição
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!task.trim()) return;
-    
+
     try {
       // Gerar um ID único para a nova tarefa
       const newId = Math.random().toString(36).substring(2, 9);
-      
+
       const newTask: Todo = {
         id: newId,
         title: task,
@@ -86,14 +86,14 @@ export default function TodoPage() {
         completed: false,
         createdAt: new Date().toISOString(),
       };
-      
+
       setTodos([newTask, ...todos]);
-      
+
       // Reset form
       setTask('');
       setPriority('normal');
       setDueDate('');
-      
+
     } catch (error) {
       console.error('Erro ao criar tarefa:', error);
     }
@@ -101,13 +101,17 @@ export default function TodoPage() {
 
   // Funções para manipulação de tarefas
   const toggleStatus = (id: string) => {
-    setTodos(todos.map(todo => 
+    setTodos(todos.map(todo =>
       todo.id === id ? { ...todo, completed: !todo.completed } : todo
     ));
   };
 
   const deleteTodo = (id: string) => {
-    setTodos(todos.filter(todo => todo.id !== id));
+    const updatedTodos = todos.filter(todo => todo.id !== id);
+    setTodos(updatedTodos);
+
+    // Atualizar o localStorage após a exclusão
+    localStorage.setItem('todos', JSON.stringify(updatedTodos));
   };
 
   const startEdit = (todo: Todo) => {
@@ -128,18 +132,18 @@ export default function TodoPage() {
 
   const saveEdit = () => {
     if (!editTask.trim()) return;
-    
-    setTodos(todos.map(todo => 
+
+    setTodos(todos.map(todo =>
       todo.id === editId
-        ? { 
-            ...todo, 
-            title: editTask,
-            priority: editPriority,
-            dueDate: editDueDate || null
-          }
+        ? {
+          ...todo,
+          title: editTask,
+          priority: editPriority,
+          dueDate: editDueDate || null
+        }
         : todo
     ));
-    
+
     cancelEdit();
   };
 
@@ -165,21 +169,21 @@ export default function TodoPage() {
   });
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="space-y-6 p-6"
     >
-      <motion.div 
+      <motion.div
         initial={{ y: -20 }}
         animate={{ y: 0 }}
         className="flex items-center justify-between"
       >
         <h1 className="text-2xl font-bold tracking-tight dark:text-gray-200">Lista de Tarefas</h1>
       </motion.div>
-      
+
       {/* Formulário para adicionar nova tarefa */}
-      <motion.div 
+      <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.1 }}
@@ -201,7 +205,7 @@ export default function TodoPage() {
               required
             />
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -219,7 +223,7 @@ export default function TodoPage() {
                 <option value="urgente">Urgente</option>
               </select>
             </div>
-            
+
             <div>
               <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Data de vencimento
@@ -233,7 +237,7 @@ export default function TodoPage() {
               />
             </div>
           </div>
-          
+
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -245,9 +249,9 @@ export default function TodoPage() {
           </motion.button>
         </form>
       </motion.div>
-      
+
       {/* Lista de tarefas */}
-      <motion.div 
+      <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
@@ -255,52 +259,49 @@ export default function TodoPage() {
       >
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
-          <h2 className="text-lg font-medium text-black dark:text-gray-200">Suas tarefas</h2>
+            <h2 className="text-lg font-medium text-black dark:text-gray-200">Suas tarefas</h2>
             <div className="flex space-x-2">
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setFilter('all')}
-                className={`px-3 py-1 text-sm rounded-md ${
-                  filter === 'all' 
-                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                className={`px-3 py-1 text-sm rounded-md ${filter === 'all'
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                     : 'bg-gray-100 dark:bg-gray-700 text-black dark:text-gray-300'
-                }`}
+                  }`}
               >
                 Todas
               </motion.button>
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setFilter('pending')}
-                className={`px-3 py-1 text-sm rounded-md ${
-                  filter === 'pending' 
-                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                className={`px-3 py-1 text-sm rounded-md ${filter === 'pending'
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                     : 'bg-gray-100 dark:bg-gray-700 text-black dark:text-gray-300'
-                }`}
+                  }`}
               >
                 Pendentes
               </motion.button>
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setFilter('completed')}
-                className={`px-3 py-1 text-sm rounded-md ${
-                  filter === 'completed' 
-                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                className={`px-3 py-1 text-sm rounded-md ${filter === 'completed'
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                     : 'bg-gray-100 dark:bg-gray-700 text-black dark:text-gray-300'
-                }`}
+                  }`}
               >
                 Concluídas
               </motion.button>
             </div>
           </div>
         </div>
-        
+
         <AnimatePresence>
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredTodos.length === 0 ? (
-              <motion.li 
+              <motion.li
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -312,10 +313,10 @@ export default function TodoPage() {
               filteredTodos.map((todo, index) => {
                 const isOverdue = todo.dueDate && new Date(todo.dueDate) < new Date() && !todo.completed;
                 const isEditing = editMode && editId === todo.id;
-                
+
                 if (isEditing) {
                   return (
-                    <motion.li 
+                    <motion.li
                       key={todo.id}
                       initial={{ backgroundColor: "rgba(239, 246, 255, 0)" }}
                       animate={{ backgroundColor: "rgba(239, 246, 255, 0.5)" }}
@@ -330,7 +331,7 @@ export default function TodoPage() {
                           placeholder="Descrição da tarefa"
                           required
                         />
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <select
                             value={editPriority}
@@ -342,7 +343,7 @@ export default function TodoPage() {
                             <option value="alta">Alta</option>
                             <option value="urgente">Urgente</option>
                           </select>
-                          
+
                           <input
                             type="date"
                             value={editDueDate}
@@ -350,7 +351,7 @@ export default function TodoPage() {
                             className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
                           />
                         </div>
-                        
+
                         <div className="flex justify-end space-x-2">
                           <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -375,13 +376,13 @@ export default function TodoPage() {
                     </motion.li>
                   );
                 }
-                
+
                 return (
-                  <motion.li 
+                  <motion.li
                     key={todo.id}
                     initial={{ opacity: 0, y: 20 }}
-                    animate={{ 
-                      opacity: 1, 
+                    animate={{
+                      opacity: 1,
                       y: 0,
                       transition: { delay: index * 0.05 }
                     }}
@@ -394,34 +395,31 @@ export default function TodoPage() {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => toggleStatus(todo.id)}
-                          className={`flex-shrink-0 h-5 w-5 rounded-full border ${
-                            todo.completed 
-                              ? 'bg-green-500 border-green-500' 
+                          className={`flex-shrink-0 h-5 w-5 rounded-full border ${todo.completed
+                              ? 'bg-green-500 border-green-500'
                               : 'border-gray-300 dark:border-gray-600'
-                          } flex items-center justify-center`}
+                            } flex items-center justify-center`}
                         >
                           {todo.completed && <Check className="h-3 w-3 text-white" />}
                         </motion.button>
-                        
+
                         <div>
-                          <p className={`text-sm font-medium ${
-                            todo.completed 
-                              ? 'text-gray-400 line-through dark:text-gray-500' 
+                          <p className={`text-sm font-medium ${todo.completed
+                              ? 'text-gray-400 line-through dark:text-gray-500'
                               : 'text-gray-900 dark:text-gray-300'
-                          }`}>
+                            }`}>
                             {todo.title}
                           </p>
-                          
+
                           <div className="mt-1 flex items-center space-x-2 text-xs">
                             <span className="inline-flex items-center">
                               {getPriorityIcon(todo.priority)}
                               <span className="ml-1 text-gray-500 dark:text-gray-400 capitalize">{todo.priority}</span>
                             </span>
-                            
+
                             {todo.dueDate && (
-                              <span className={`inline-flex items-center ${
-                                isOverdue ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
-                              }`}>
+                              <span className={`inline-flex items-center ${isOverdue ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
+                                }`}>
                                 <Clock className="mr-1 h-3 w-3" />
                                 {new Date(todo.dueDate).toLocaleDateString('pt-BR')}
                                 {isOverdue && ' (Atrasada)'}
@@ -430,7 +428,7 @@ export default function TodoPage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex space-x-2">
                         <motion.button
                           whileHover={{ scale: 1.1, color: "rgb(59, 130, 246)" }}
