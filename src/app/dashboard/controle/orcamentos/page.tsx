@@ -408,10 +408,10 @@ export default function OrcamentosPage() {
   const uniqueYears = [...new Set(budgets.map(b => b.year))].sort((a, b) => b - a);
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+    <div className="w-full max-w-full p-2 md:p-4 lg:p-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-black dark:text-white">Gestão de Orçamentos</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-black dark:text-white">Gestão de Orçamentos</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Controle e acompanhamento de orçamentos da empresa
           </p>
@@ -422,7 +422,8 @@ export default function OrcamentosPage() {
             setBudgetForm(initialBudgetForm);
             setOpenFormDialog(true);
           }}
-          className="mt-4 md:mt-0"
+          className="mt-3 md:mt-0"
+          size="sm"
         >
           <PlusCircle className="mr-2 h-4 w-4" />
           Novo Orçamento
@@ -431,49 +432,49 @@ export default function OrcamentosPage() {
 
       {/* Mensagens de sucesso/erro */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 flex items-center">
-          <AlertTriangle className="h-5 w-5 mr-2" />
+        <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded relative mb-4 flex items-center">
+          <AlertTriangle className="h-4 w-4 mr-2" />
           {error}
           <button 
-            className="absolute top-0 bottom-0 right-0 px-4"
+            className="absolute top-0 bottom-0 right-0 px-3"
             onClick={() => setError(null)}
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}
 
       {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+        <div className="bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded relative mb-4">
           {success}
           <button 
-            className="absolute top-0 bottom-0 right-0 px-4"
+            className="absolute top-0 bottom-0 right-0 px-3"
             onClick={() => setSuccess(null)}
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total de Orçamentos</CardTitle>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 lg:gap-4 mb-4 md:mb-6">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-1 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Total de Orçamentos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalBudgets}</div>
+            <div className="text-xl md:text-2xl font-bold">{totalBudgets}</div>
             <p className="text-xs text-muted-foreground">
               {totalApproved} aprovados
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Valor Estimado</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-1 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Valor Estimado</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl md:text-2xl font-bold">
               {totalEstimated.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -481,12 +482,12 @@ export default function OrcamentosPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Valor Realizado</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-1 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Valor Realizado</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl md:text-2xl font-bold">
               {totalActual.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -494,12 +495,12 @@ export default function OrcamentosPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Variação</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-1 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Variação</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl md:text-2xl font-bold">
               {totalEstimated > 0 
                 ? (((totalActual - totalEstimated) / totalEstimated) * 100).toFixed(2) + '%'
                 : '0%'
@@ -513,24 +514,24 @@ export default function OrcamentosPage() {
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+      <div className="flex flex-wrap md:flex-nowrap justify-between gap-2 mb-4">
+        <div className="w-full md:w-auto flex flex-wrap md:flex-nowrap gap-2">
+          <div className="relative w-full md:w-auto">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <Input
               type="text"
               placeholder="Buscar orçamento..."
-              className="pl-10 w-full md:w-64"
+              className="pl-8 py-1 h-9 text-sm w-full md:w-64"
               value={filters.search}
               onChange={(e) => setFilters({...filters, search: e.target.value})}
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap md:flex-nowrap">
             <Select
               value={filters.year}
               onValueChange={(value) => setFilters({...filters, year: value})}
             >
-              <SelectTrigger className="w-[110px]">
+              <SelectTrigger className="w-[100px] h-9 text-xs">
                 <SelectValue placeholder="Ano" />
               </SelectTrigger>
               <SelectContent>
@@ -547,8 +548,8 @@ export default function OrcamentosPage() {
               value={filters.type}
               onValueChange={(value) => setFilters({...filters, type: value})}
             >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Tipo de Orçamento" />
+              <SelectTrigger className="w-[140px] h-9 text-xs">
+                <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os Tipos</SelectItem>
@@ -562,7 +563,7 @@ export default function OrcamentosPage() {
               value={filters.status}
               onValueChange={(value) => setFilters({...filters, status: value})}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[120px] h-9 text-xs">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -578,130 +579,152 @@ export default function OrcamentosPage() {
       </div>
 
       {/* Tabela de Orçamentos */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-1/5">Título</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Ano</TableHead>
-              <TableHead>Departamento</TableHead>
-              <TableHead className="text-right">Valor Estimado</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-center">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+      <div className="rounded-md border overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center p-8">
-                  <div className="flex justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
-                  </div>
-                  <div className="mt-2">Carregando orçamentos...</div>
-                </TableCell>
+                <TableHead className="py-2 px-3 text-xs font-medium">Título</TableHead>
+                <TableHead className="py-2 px-3 text-xs font-medium">Tipo</TableHead>
+                <TableHead className="py-2 px-3 text-xs font-medium">Ano</TableHead>
+                <TableHead className="py-2 px-3 text-xs font-medium">Departamento</TableHead>
+                <TableHead className="py-2 px-3 text-xs font-medium text-right">Valor Estimado</TableHead>
+                <TableHead className="py-2 px-3 text-xs font-medium">Status</TableHead>
+                <TableHead className="py-2 px-3 text-xs font-medium text-center">Ações</TableHead>
               </TableRow>
-            ) : getCurrentItems().length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center p-8">
-                  <div className="flex flex-col items-center justify-center">
-                    <FileText className="h-12 w-12 text-gray-400 mb-2" />
-                    <p>Nenhum orçamento encontrado</p>
-                    {filters.search || filters.year !== 'all' || filters.type !== 'all' || filters.status !== 'all' ? (
-                      <Button 
-                        variant="outline" 
-                        className="mt-2"
-                        onClick={() => setFilters({year: 'all', type: 'all', status: 'all', search: ''})}
-                      >
-                        Limpar filtros
-                      </Button>
-                    ) : (
-                      <Button 
-                        className="mt-2"
-                        onClick={() => setOpenFormDialog(true)}
-                      >
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Criar novo orçamento
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              getCurrentItems().map((budget) => (
-                <TableRow key={budget._id}>
-                  <TableCell className="font-medium">{budget.title}</TableCell>
-                  <TableCell>{formatType(budget.type)}</TableCell>
-                  <TableCell>{budget.year}</TableCell>
-                  <TableCell>{budget.department || '-'}</TableCell>
-                  <TableCell className="text-right">
-                    {budget.totalEstimatedValue
-                      ? budget.totalEstimatedValue.toLocaleString('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL'
-                        })
-                      : '-'
-                    }
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center p-6">
+                    <div className="flex justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-gray-900"></div>
+                    </div>
+                    <div className="mt-2 text-sm">Carregando orçamentos...</div>
                   </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusClass(budget.status)}>
-                      {formatStatus(budget.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-center space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditBudget(budget)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleOpenDeleteDialog(budget._id as string)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                </TableRow>
+              ) : getCurrentItems().length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center p-6">
+                    <div className="flex flex-col items-center justify-center">
+                      <FileText className="h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-sm">Nenhum orçamento encontrado</p>
+                      {filters.search || filters.year !== 'all' || filters.type !== 'all' || filters.status !== 'all' ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => setFilters({year: 'all', type: 'all', status: 'all', search: ''})}
+                        >
+                          Limpar filtros
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => setOpenFormDialog(true)}
+                        >
+                          <PlusCircle className="mr-1 h-3 w-3" />
+                          Criar novo orçamento
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                getCurrentItems().map((budget) => (
+                  <TableRow key={budget._id} className="text-xs md:text-sm">
+                    <TableCell className="py-2 px-3 font-medium">{budget.title}</TableCell>
+                    <TableCell className="py-2 px-3">{formatType(budget.type)}</TableCell>
+                    <TableCell className="py-2 px-3">{budget.year}</TableCell>
+                    <TableCell className="py-2 px-3">{budget.department || '-'}</TableCell>
+                    <TableCell className="py-2 px-3 text-right">
+                      {budget.totalEstimatedValue
+                        ? budget.totalEstimatedValue.toLocaleString('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL'
+                          })
+                        : '-'
+                      }
+                    </TableCell>
+                    <TableCell className="py-2 px-3">
+                      <Badge className={`text-xs ${getStatusClass(budget.status)}`}>
+                        {formatStatus(budget.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-2 px-3">
+                      <div className="flex justify-center space-x-1">
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleEditBudget(budget)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          className="h-7 w-7 text-red-500 hover:text-red-700"
+                          onClick={() => handleOpenDeleteDialog(budget._id as string)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Paginação */}
       {totalPages > 1 && (
-        <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-gray-500">
+        <div className="flex flex-col xs:flex-row justify-between items-center mt-3 md:mt-4 gap-2">
+          <div className="text-xs text-gray-500 order-2 xs:order-1">
             Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, filteredBudgets.length)} de {filteredBudgets.length} orçamentos
           </div>
-          <div className="flex space-x-2">
+          <div className="flex space-x-1 order-1 xs:order-2">
             <Button
               variant="outline"
               size="sm"
+              className="h-7 px-2 text-xs"
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
             >
               Anterior
             </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCurrentPage(page)}
-              >
-                {page}
-              </Button>
-            ))}
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else {
+                if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+              }
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 w-7 p-0 text-xs"
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
             <Button
               variant="outline"
               size="sm"
+              className="h-7 px-2 text-xs"
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
             >
@@ -713,7 +736,7 @@ export default function OrcamentosPage() {
 
       {/* Modal de Formulário */}
       <Dialog open={openFormDialog} onOpenChange={setOpenFormDialog}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingBudget ? 'Editar Orçamento' : 'Novo Orçamento'}
@@ -726,8 +749,8 @@ export default function OrcamentosPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-3">
+            <div className="space-y-1">
               <label htmlFor="title" className="block text-sm font-medium">
                 Título*
               </label>
@@ -736,10 +759,11 @@ export default function OrcamentosPage() {
                 value={budgetForm.title}
                 onChange={(e) => setBudgetForm({...budgetForm, title: e.target.value})}
                 placeholder="Título do orçamento"
+                className="h-8"
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label htmlFor="type" className="block text-sm font-medium">
                 Tipo*
               </label>
@@ -749,7 +773,7 @@ export default function OrcamentosPage() {
                   setBudgetForm({...budgetForm, type: value})
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-8">
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -760,7 +784,7 @@ export default function OrcamentosPage() {
               </Select>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label htmlFor="year" className="block text-sm font-medium">
                 Ano*
               </label>
@@ -772,10 +796,11 @@ export default function OrcamentosPage() {
                 placeholder="Ano do orçamento"
                 min="2023"
                 max="2030"
+                className="h-8"
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label htmlFor="department" className="block text-sm font-medium">
                 Departamento
               </label>
@@ -784,10 +809,11 @@ export default function OrcamentosPage() {
                 value={budgetForm.department}
                 onChange={(e) => setBudgetForm({...budgetForm, department: e.target.value})}
                 placeholder="Departamento (opcional)"
+                className="h-8"
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label htmlFor="startDate" className="block text-sm font-medium">
                 Data Inicial
               </label>
@@ -796,10 +822,11 @@ export default function OrcamentosPage() {
                 type="date"
                 value={budgetForm.startDate}
                 onChange={(e) => setBudgetForm({...budgetForm, startDate: e.target.value})}
+                className="h-8"
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label htmlFor="endDate" className="block text-sm font-medium">
                 Data Final
               </label>
@@ -808,10 +835,11 @@ export default function OrcamentosPage() {
                 type="date"
                 value={budgetForm.endDate}
                 onChange={(e) => setBudgetForm({...budgetForm, endDate: e.target.value})}
+                className="h-8"
               />
             </div>
             
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-1 md:col-span-2">
               <label htmlFor="notes" className="block text-sm font-medium">
                 Observações
               </label>
@@ -820,12 +848,13 @@ export default function OrcamentosPage() {
                 value={budgetForm.notes}
                 onChange={(e) => setBudgetForm({...budgetForm, notes: e.target.value})}
                 placeholder="Observações adicionais"
+                className="h-8"
               />
             </div>
             
             {/* Status somente para edição */}
             {editingBudget && (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <label htmlFor="status" className="block text-sm font-medium">
                   Status
                 </label>
@@ -835,7 +864,7 @@ export default function OrcamentosPage() {
                     setBudgetForm({...budgetForm, status: value})
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8">
                     <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -850,8 +879,8 @@ export default function OrcamentosPage() {
           </div>
           
           {/* Seção de itens */}
-          <div className="space-y-4 mt-4">
-            <h3 className="text-lg font-medium">Itens do Orçamento</h3>
+          <div className="space-y-3 mt-3">
+            <h3 className="text-base font-medium">Itens do Orçamento</h3>
             
             {/* Adicionar novo item */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -859,11 +888,13 @@ export default function OrcamentosPage() {
                 placeholder="Descrição do item"
                 value={tempItem.description}
                 onChange={(e) => setTempItem({...tempItem, description: e.target.value})}
+                className="h-8"
               />
               <Input
                 placeholder="Categoria"
                 value={tempItem.category}
                 onChange={(e) => setTempItem({...tempItem, category: e.target.value})}
+                className="h-8"
               />
               <div className="flex gap-2">
                 <Input
@@ -874,8 +905,9 @@ export default function OrcamentosPage() {
                     ...tempItem, 
                     estimatedValue: e.target.value ? Number(e.target.value) : 0
                   })}
+                  className="h-8"
                 />
-                <Button type="button" onClick={handleAddItem}>
+                <Button type="button" onClick={handleAddItem} className="h-8 w-8 p-0">
                   <PlusCircle className="h-4 w-4" />
                 </Button>
               </div>
@@ -884,65 +916,68 @@ export default function OrcamentosPage() {
             {/* Lista de itens */}
             {budgetForm.items.length > 0 ? (
               <div className="border rounded-md overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead className="text-right">Valor Estimado</TableHead>
-                      <TableHead className="w-16"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {budgetForm.items.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{item.description}</TableCell>
-                        <TableCell>{item.category}</TableCell>
-                        <TableCell className="text-right">
-                          {item.estimatedValue.toLocaleString('pt-BR', {
+                <div className="max-h-[300px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="text-xs">
+                        <TableHead className="py-2 px-3">Descrição</TableHead>
+                        <TableHead className="py-2 px-3">Categoria</TableHead>
+                        <TableHead className="py-2 px-3 text-right">Valor Estimado</TableHead>
+                        <TableHead className="py-2 px-3 w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {budgetForm.items.map((item, index) => (
+                        <TableRow key={index} className="text-xs">
+                          <TableCell className="py-1 px-3">{item.description}</TableCell>
+                          <TableCell className="py-1 px-3">{item.category}</TableCell>
+                          <TableCell className="py-1 px-3 text-right">
+                            {item.estimatedValue.toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            })}
+                          </TableCell>
+                          <TableCell className="py-1 px-3">
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              onClick={() => handleRemoveItem(index)}
+                              className="h-6 w-6 text-red-500 hover:text-red-700"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="text-xs font-bold">
+                        <TableCell colSpan={2} className="py-1 px-3">
+                          Total Estimado
+                        </TableCell>
+                        <TableCell className="py-1 px-3 text-right">
+                          {calculateTotalEstimated(budgetForm.items).toLocaleString('pt-BR', {
                             style: 'currency',
                             currency: 'BRL'
                           })}
                         </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleRemoveItem(index)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+                        <TableCell></TableCell>
                       </TableRow>
-                    ))}
-                    <TableRow>
-                      <TableCell colSpan={2} className="font-bold">
-                        Total Estimado
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        {calculateTotalEstimated(budgetForm.items).toLocaleString('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL'
-                        })}
-                      </TableCell>
-                      <TableCell></TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-md">
-                <FileText className="h-12 w-12 text-gray-400 mb-2" />
-                <p>Nenhum item adicionado</p>
-                <p className="text-sm text-gray-500">Adicione itens ao orçamento usando o formulário acima</p>
+              <div className="flex flex-col items-center justify-center p-6 border border-dashed rounded-md">
+                <FileText className="h-10 w-10 text-gray-400 mb-2" />
+                <p className="text-sm">Nenhum item adicionado</p>
+                <p className="text-xs text-gray-500">Adicione itens ao orçamento usando o formulário acima</p>
               </div>
             )}
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="mt-3">
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => {
                 setOpenFormDialog(false);
                 setBudgetForm(initialBudgetForm);
@@ -950,16 +985,19 @@ export default function OrcamentosPage() {
                 setError(null);
               }}
               disabled={isSubmitting}
+              className="h-8"
             >
               Cancelar
             </Button>
             <Button 
+              size="sm"
               onClick={handleSaveBudget} 
               disabled={isSubmitting}
+              className="h-8"
             >
               {isSubmitting ? (
                 <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  <div className="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                   Salvando...
                 </>
               ) : (
@@ -972,26 +1010,30 @@ export default function OrcamentosPage() {
 
       {/* Modal de Confirmação de Exclusão */}
       <Dialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Confirmar Exclusão</DialogTitle>
             <DialogDescription>
               Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="mt-3">
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => {
                 setOpenDeleteDialog(false);
                 setBudgetToDelete(null);
               }}
+              className="h-8"
             >
               Cancelar
             </Button>
             <Button 
               variant="destructive" 
+              size="sm"
               onClick={handleConfirmDelete}
+              className="h-8"
             >
               Excluir
             </Button>

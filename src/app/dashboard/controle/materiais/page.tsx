@@ -345,11 +345,11 @@ export default function MaterialsPage() {
     }, [filteredMateriais, currentPage, totalPages]);
 
     return (
-        <div className="p-6 max-w-6xl mx-auto bg-white dark:bg-gray-900 dark:text-white rounded-2xl">
+        <div className="p-4 md:p-6 max-w-full w-full mx-auto bg-white dark:bg-gray-900 dark:text-white rounded-2xl">
             <h1 className="text-3xl font-bold mb-6 text-gray-800 dark:text-white">Gestão de Materiais</h1>
 
             {/* Estatísticas */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h3 className="text-lg font-medium text-blue-900 dark:text-blue-200">Total de Itens</h3>
                     <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{totalItems}</p>
@@ -367,9 +367,9 @@ export default function MaterialsPage() {
             </div>
 
             {/* Filtros, Pesquisa e Controles */}
-            <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="relative">
+            <div className="flex flex-col lg:flex-row justify-between gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                    <div className="relative flex-grow">
                         <input
                             type="text"
                             placeholder="Buscar material..."
@@ -379,7 +379,7 @@ export default function MaterialsPage() {
                         />
                         <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
                     </div>
-                    <div className="flex items-center">
+                    <div className="flex items-center min-w-[180px]">
                         <span className="mr-2 text-gray-500 dark:text-gray-400">📋</span>
                         <select
                             className="border rounded-md p-2 w-full dark:bg-gray-800 dark:border-gray-700 dark:text-white"
@@ -396,7 +396,7 @@ export default function MaterialsPage() {
                 </div>
 
                 {/* Filtro de mês e ano */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap justify-end">
                     <div className="flex items-center">
                         <span className="mr-2 text-gray-500">📅</span>
                         <select
@@ -470,7 +470,7 @@ export default function MaterialsPage() {
                     <h2 className="text-xl font-semibold mb-4 dark:text-white">
                         {editingMaterial ? "Editar Material" : "Adicionar Novo Material"}
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                         <div>
                             <label className="block text-sm font-medium mb-1">Categoria *</label>
                             <select
@@ -594,26 +594,26 @@ export default function MaterialsPage() {
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
                 </div>
             ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead className="bg-gray-50 dark:bg-gray-900">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Categoria
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Nome
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Quantidade
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Valor Total
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Data Cadastro
                                 </th>
-                                <th className="px-9 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Ações
                                 </th>
                             </tr>
@@ -631,10 +631,10 @@ export default function MaterialsPage() {
                             ) : (
                                 paginatedMateriais.map((material) => (
                                     <tr key={material.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 py-4 whitespace-nowrap">
                                             <span className="font-medium">{material.categoria}</span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 py-4 whitespace-nowrap">
                                             {material.nome}
                                             {material.fornecedor && (
                                                 <span className="text-xs text-gray-500 block">
@@ -642,13 +642,13 @@ export default function MaterialsPage() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 py-4 whitespace-nowrap">
                                             {material.quantidade} {material.unidade}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 py-4 whitespace-nowrap">
                                             R$ {material.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 py-4 whitespace-nowrap">
                                             {new Date(material.dataCriacao).toLocaleDateString()}
                                         </td>
                                         <td className="px-4 flex space-x-2 py-4 whitespace-nowrap text-right">
@@ -687,15 +687,15 @@ export default function MaterialsPage() {
 
                     {/* Paginação */}
                     {totalPages > 1 && (
-                        <div className="flex justify-between items-center px-6 py-3 bg-gray-50">
-                            <div className="text-sm text-gray-500">
+                        <div className="flex flex-col sm:flex-row justify-between items-center px-4 py-3 bg-gray-50 dark:bg-gray-900">
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mb-2 sm:mb-0">
                                 Mostrando {startIndex + 1} a {Math.min(startIndex + itemsPerPage, filteredMateriais.length)} de {filteredMateriais.length} itens
                             </div>
-                            <div className="flex space-x-2">
+                            <div className="flex space-x-1">
                                 <button
                                     className={`px-3 py-1 rounded-md ${currentPage === 1
-                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                        ? "bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                                         }`}
                                     disabled={currentPage === 1}
                                     onClick={() => setCurrentPage(currentPage - 1)}
@@ -707,7 +707,7 @@ export default function MaterialsPage() {
                                         key={page}
                                         className={`px-3 py-1 rounded-md ${page === currentPage
                                             ? "bg-blue-600 text-white"
-                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                            : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                                             }`}
                                         onClick={() => setCurrentPage(page)}
                                     >
@@ -716,8 +716,8 @@ export default function MaterialsPage() {
                                 ))}
                                 <button
                                     className={`px-3 py-1 rounded-md ${currentPage === totalPages
-                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                        ? "bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                                         }`}
                                     disabled={currentPage === totalPages || totalPages === 0}
                                     onClick={() => setCurrentPage(currentPage + 1)}
