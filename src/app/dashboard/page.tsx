@@ -2,21 +2,45 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
   getDashboardCards, 
-  getRecentActivities 
+  getRecentActivities,
+  getAssistantDashboardCards
 } from '@/services/dashboard-service'
 import SimpleCharts from '@/components/ui/ChartMoney'
+import AssistantDashboard from '@/components/dashboards/AssistantDashboard'
 import dynamic from 'next/dynamic'
 
 // Dynamically import Lottie with SSR disabled
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
 export default function DashboardPage() {
-  const dashboardCards = getDashboardCards()
-  const recentActivities = getRecentActivities()
+  const { data: session } = useSession()
+  const isAssistant = session?.user?.role === 'assistente'
+  
+  // Escolha os dados baseados na função do usuário
+  const dashboardCards = isAssistant 
+    ? getAssistantDashboardCards() 
+    : getDashboardCards()
+      
+  // Convert percentage from string to number if needed
+  const formattedDashboardCards = dashboardCards.map(card => ({
+    ...card,
+    percentage: typeof card.percentage === 'string' ? parseFloat(card.percentage) : card.percentage
+  }))
+    
+  interface Activity {
+    icon: React.ElementType;
+    title: string;
+    time: string;
+    description: string;
+    type?: 'success' | 'info' | 'warning' | 'default';
+  }
+  
+  const recentActivities = getRecentActivities() as Activity[]
   const [isClient, setIsClient] = useState(false)
   const [animations, setAnimations] = useState<Record<string, object>>({})
 
@@ -61,10 +85,21 @@ export default function DashboardPage() {
         console.error("Error loading animations:", error)
       }
     }
-
-    loadAnimations()
+    
+    loadAnimations();
+    
   }, [isClient])
+  
+  if (isAssistant) {
+    return <AssistantDashboard 
+      isClient={isClient} 
+      animations={animations} 
+      dashboardCards={formattedDashboardCards} 
+      recentActivities={recentActivities} 
+    />
+  }
 
+  // O seu return original para CEO e Admin permanece...
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -94,8 +129,7 @@ export default function DashboardPage() {
                   // Fallback to original icon if animation isn't loaded
                   <div className="bg-cyan-50 dark:bg-gray-800 border rounded-md p-2 group-hover:bg-cyan-100 transition-colors duration-200">
                     {React.createElement(card.icon as React.ElementType, { 
-                      className: "text-cyan-500 group-hover:text-cyan-600 transition-colors", 
-                      size: 30 
+                      className: "h-5 w-5" 
                     })}
                   </div>
                 )}
@@ -129,23 +163,30 @@ export default function DashboardPage() {
           </Button>
         </div>
         <div className="space-y-3">
-          {recentActivities.map((activity) => (
+          {recentActivities.map((activity, index) => (
             <div 
-              key={activity.id} 
-              className="flex items-center justify-between border-b pb-3 last:border-b-0 dark:border-gray-700"
+              key={index} 
+              className={`
+                p-4 rounded-lg
+                ${activity.type === 'success' ? 'bg-green-100 dark:bg-green-900/30' : 
+                  activity.type === 'info' ? 'bg-blue-100 dark:bg-blue-900/30' : 
+                  activity.type === 'warning' ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-gray-100 dark:bg-gray-700'}
+              `}
             >
               <div className="flex items-center space-x-3">
                 <div className={`
-                  p-2 rounded-full
-                  ${activity.type === 'success' ? 'bg-green-100 dark:bg-green-900/30' : 
-                    activity.type === 'info' ? 'bg-blue-100 dark:bg-blue-900/30' : 
-                    activity.type === 'warning' ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-gray-100 dark:bg-gray-700'}
-                `}>
-                  {activity.icon}
+                    p-2 rounded-full
+                    ${activity.type === 'success' ? 'bg-green-100 dark:bg-green-900/30' : 
+                      activity.type === 'info' ? 'bg-blue-100 dark:bg-blue-900/30' : 
+                      activity.type === 'warning' ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-gray-100 dark:bg-gray-700'}
+                  `}>
+                  {React.createElement(activity.icon as React.ElementType, { 
+                    className: "h-5 w-5" 
+                  })}
                 </div>
                 <div>
                   <p className="font-medium text-sm dark:text-white">{activity.title}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{activity.timestamp}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{activity.time}</p>
                 </div>
               </div>
             </div>
