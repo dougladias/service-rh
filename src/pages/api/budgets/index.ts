@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { connectToDatabase, mongoose } from '@/api/mongodb';
 import Budget from '@/models/Budget';
-import { UserRole } from '@/types/permissions';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -16,10 +15,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ message: 'Não autorizado' });
     }
 
-    // Verificar permissões
-    const userRole = session.user.role as UserRole;
-    const allowedRoles = [UserRole.CEO, UserRole.ADMIN];
-    if (!allowedRoles.includes(userRole)) {
+    // Verificar permissões - CORREÇÃO
+    const userRole = session.user.role;
+    // Verificação baseada em strings em vez de enum para evitar incompatibilidades
+    if (userRole !== 'CEO' && userRole !== 'assistente') {
+      console.log('Acesso negado para role:', userRole);
       return res.status(403).json({ message: 'Sem permissão para acessar este recurso' });
     }
 
